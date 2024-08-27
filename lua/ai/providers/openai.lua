@@ -14,22 +14,48 @@ M.parse_message = function(opts)
 
   return {
     { role = "system", content = opts.system_prompt },
-    { role = "user",   content = opts.base_prompt },
+    { role = "user", content = opts.base_prompt },
   }
 end
 
-M.parse_response = function (data_stream, _, opts)
+M.parse_response = function(data_stream, _, opts)
+  print("Received data_stream in openai.lua:", vim.inspect(data_stream))
+
   if data_stream == nil or data_stream == "" then
+    print("Empty data_stream, returning")
     return
   end
-  local data_match = data_stream:match("^data: (.+)$")
-  if data_match == '[DONE]' then
-    opts.on_complete(nil)
-  else
-    local json = vim.json.decode(data_match)
+
+  -- Try to decode the entire data_stream as JSON
+  local success, json = pcall(vim.json.decode, data_stream)
+  if success then
+    print("Successfully decoded JSON:", vim.inspect(json))
     if json.choices and #json.choices > 0 then
-      local content = json.choices[1].delta.content or ''
+      local content = json.choices[1].delta and json.choices[1].delta.content or json.choices[1].text or ""
       opts.on_chunk(content)
+    end
+    return
+  end
+
+  -- If it's not valid JSON, it might be a stream chunk
+  local lines = vim.split(data_stream, "\n")
+  for _, line in ipairs(lines) do
+    if line:match("^data: ") then
+      local data = line:sub(7) -- Remove "data: " prefix
+      if data == "[DONE]" then
+        opts.on_complete(nil)
+      else
+        success, json = pcall(vim.json.decode, data)
+        if success then
+          print("Successfully decoded JSON from data:", vim.inspect(json))
+          if json.choices and #json.choices > 0 then
+            local content = json.choices[1].delta and json.choices[1].delta.content or json.choices[1].text or ""
+            opts.on_chunk(content)
+          end
+        else
+          print("Failed to decode JSON from data:", data)
+        end
+      end
     end
   end
 end
@@ -45,13 +71,18 @@ M.parse_curl_args = function(provider, code_opts)
   local messages = {
     {
       role = "system",
-      content = code_opts.system_prompt
+      content = code_opts.system_prompt or "", -- Ensure it's not null
     },
     {
       role = "user",
-      content = code_opts.base_prompt
-    }
+      content = code_opts.base_prompt or "", -- Ensure it's not null
+    },
   }
+
+  -- Filter out any messages with null content
+  messages = vim.tbl_filter(function(msg)
+    return msg.content ~= nil and msg.content ~= ""
+  end, messages)
 
   return {
     url = Utils.trim(base.endpoint, { suffix = "/" }) .. "/v1/chat/completions",

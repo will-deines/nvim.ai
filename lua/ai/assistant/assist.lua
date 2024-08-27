@@ -1,5 +1,8 @@
 local lustache = require("ai.lustache")
 local Prompts = require("ai.assistant.prompts")
+local scan = require("plenary.scandir")
+local path = require("plenary.path")
+local config = require("ai.config")
 
 M = {}
 
@@ -15,7 +18,7 @@ local function get_buffer_filetype()
   end
 
   -- Get the filetype of the buffer
-  local filetype = vim.api.nvim_buf_get_option(bufnr, 'filetype')
+  local filetype = vim.api.nvim_buf_get_option(bufnr, "filetype")
 
   -- If filetype is an empty string, it might mean it's not set
   if filetype == "" then
@@ -34,30 +37,44 @@ local function get_buffer_filetype()
   return filetype
 end
 
+local function get_file_content(file_path)
+  local p = path:new(file_path)
+  if p:exists() and not p:is_dir() then
+    return p:read()
+  end
+  return nil
+end
+
 --- Read the content of multiple buffers into a single string
 -- @param buffer_numbers table A list of buffer numbers
 -- @return string The concatenated content of all specified buffers
-local function build_document(buffer_numbers)
+local function build_document(buffer_numbers, file_paths)
   local contents = {}
+
+  -- Process buffers
   for _, bufnr in ipairs(buffer_numbers) do
     if vim.api.nvim_buf_is_valid(bufnr) then
-      -- get the file name without parent directory
       local full_path = vim.api.nvim_buf_get_name(bufnr)
       local filename = vim.fn.fnamemodify(full_path, ":t")
-
-      -- get the file type, or empty string if not available
-      local filetype = vim.api.nvim_buf_get_option(bufnr, 'filetype') or ''
-
-      -- get buffer content
+      local filetype = vim.api.nvim_buf_get_option(bufnr, "filetype") or ""
       local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
       local buffer_content = table.concat(lines, "\n")
-
-      -- format the content
       local formatted_content = string.format("%s\n```%s\n%s\n```", filename, filetype, buffer_content)
-
       table.insert(contents, formatted_content)
     end
   end
+
+  -- Process files
+  for _, file_path in ipairs(file_paths) do
+    local filename = vim.fn.fnamemodify(file_path, ":t")
+    local filetype = vim.filetype.match({ filename = file_path }) or ""
+    local file_content = get_file_content(file_path)
+    if file_content then
+      local formatted_content = string.format("## File: %s\n\n```%s\n%s\n```", filename, filetype, file_content)
+      table.insert(contents, formatted_content)
+    end
+  end
+
   return table.concat(contents, "\n\n")
 end
 
@@ -93,7 +110,7 @@ local function build_inline_document()
   return table.concat({
     prefix,
     "<insert_here></insert_here>",
-    suffix
+    suffix,
   }, "\n\n")
 end
 
@@ -117,8 +134,10 @@ local function build_inline_context(user_prompt, language_name, is_insert)
     language_name = get_buffer_filetype()
   end
 
-  local content_type = language_name == nil or language_name == "text" or language_name == "markdown" and "text" or
-      "code"
+  local content_type = language_name == nil
+    or language_name == "text"
+    or language_name == "markdown" and "text"
+    or "code"
 
   local result = {
     document_content = document,
@@ -127,7 +146,7 @@ local function build_inline_context(user_prompt, language_name, is_insert)
     content_type = content_type,
     is_insert = is_insert, -- TODO: assist inline
     rewrite_section = nil, -- TODO: Rewrite section
-    is_truncated = nil,    -- TODO: The code length could be larger than the context
+    is_truncated = nil, -- TODO: The code length could be larger than the context
   }
   return result
 end
@@ -141,26 +160,53 @@ end
 
 M.parse_chat_prompt = function(input_string)
   local buffers = {}
+  local files = {}
+  local chat_history = {}
   local user_prompt_lines = {}
-  -- parse slash commands
+  local current_speaker = "you" -- Set initial speaker to "you"
+
+  -- Parse slash commands and chat history
   for line in input_string:gmatch("[^\r\n]+") do
     local buf_match = line:match("^/buf%s+(%d+)")
+    local file_match = line:match("^/file%s+(.+)")
+    local speaker_match = line:match("^/(%w+):")
+
     if buf_match then
       table.insert(buffers, tonumber(buf_match))
+    elseif file_match then
+      table.insert(files, file_match)
+    elseif speaker_match then
+      if #user_prompt_lines > 0 then
+        table.insert(chat_history, { role = current_speaker, content = table.concat(user_prompt_lines, "\n") })
+        user_prompt_lines = {}
+      end
+      current_speaker = speaker_match
     else
       table.insert(user_prompt_lines, line)
     end
   end
 
-  local user_prompt = table.concat(user_prompt_lines, "\n"):gsub("^%s*(.-)%s*$", "%1")
-  local prompt
-  if #buffers > 0 then
-    local document = build_document(buffers)
-    prompt = "<document>\n" .. document .. "\n</document>\n\n" .. user_prompt
-  else
-    prompt = user_prompt
+  -- Add the last speaker's content
+  if #user_prompt_lines > 0 then
+    table.insert(chat_history, { role = current_speaker, content = table.concat(user_prompt_lines, "\n") })
   end
-  return prompt
+
+  -- Build the document content
+  local document = ""
+  if #buffers > 0 or #files > 0 then
+    document = build_document(buffers, files)
+  end
+
+  -- Combine everything into the final prompt
+  local final_prompt = {}
+  if document ~= "" then
+    table.insert(final_prompt, "<document>\n" .. document .. "\n</document>")
+  end
+  for _, entry in ipairs(chat_history) do
+    table.insert(final_prompt, string.format("/%s: %s", entry.role, entry.content))
+  end
+
+  return table.concat(final_prompt, "\n\n")
 end
 
 return M

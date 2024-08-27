@@ -1,12 +1,14 @@
 local M = {}
 
 M.BASE_PROVIDER_KEYS = { "endpoint", "model", "local", "deployment", "api_version", "proxy", "allow_insecure" }
-M.FLIE_TYPE = "chat-dialog"
+M.FILE_TYPE = "chat-dialog"
 
 -- Add this near the top of the file, after the local M = {} line
 local function read_file(path)
   local file = io.open(path, "r")
-  if not file then return nil end
+  if not file then
+    return nil
+  end
   local content = file:read("*all")
   file:close()
   return content
@@ -14,12 +16,18 @@ end
 
 -- Default configuration
 M.defaults = {
+  file_completion = {
+    max_files = 1000,
+    max_chars = 50000,
+    show_directories_first = true,
+    respect_gitignore = true,
+  },
   debug = true,
   -- Chat Dialog UI configuration
   ui = {
-    width = 80,     -- Width of the chat dialog window
-    side = 'right', -- Side of the editor to open the dialog ('left' or 'right')
-    borderchars = { '╭', '─', '╮', '│', '╯', '─', '╰', '│', },
+    width = 80, -- Width of the chat dialog window
+    side = "right", -- Side of the editor to open the dialog ('left' or 'right')
+    borderchars = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
     highlight = {
       border = "FloatBorder", -- Highlight group for the border
       background = "NormalFloat", -- Highlight group for the background
@@ -78,10 +86,10 @@ M.defaults = {
 
   -- Keymaps
   keymaps = {
-    toggle = "<leader>c",       -- Toggle chat dialog
-    send = "<CR>",               -- Send message in normal mode
-    close = "q",                 -- Close chat dialog
-    clear = "<C-l>",             -- Clear chat history
+    toggle = "<leader>c", -- Toggle chat dialog
+    send = "<CR>", -- Send message in normal mode
+    close = "q", -- Close chat dialog
+    clear = "<C-l>", -- Clear chat history
     inline_assist = "<leader>i", -- Run InlineAssist command with prompt
     accept_code = "<leader>ia",
     reject_code = "<leader>ij",
@@ -89,8 +97,8 @@ M.defaults = {
 
   -- Behavior
   behavior = {
-    auto_open = true,                     -- Automatically open dialog when sending a message
-    save_history = true,                  -- Save chat history between sessions
+    auto_open = true, -- Automatically open dialog when sending a message
+    save_history = true, -- Save chat history between sessions
     history_dir = vim.fn.stdpath("data"), -- Path to save chat history
   },
 
@@ -125,7 +133,7 @@ function M.setup(user_config)
   M.config = vim.tbl_deep_extend("force", M.defaults, user_config or {})
 
   -- Validate configuration
-  assert(M.config.ui.side == 'left' or M.config.ui.side == 'right', "UI side must be 'left' or 'right'")
+  assert(M.config.ui.side == "left" or M.config.ui.side == "right", "UI side must be 'left' or 'right'")
   assert(type(M.config.ui.width) == "number", "UI width must be a number")
 
   -- Set up API key

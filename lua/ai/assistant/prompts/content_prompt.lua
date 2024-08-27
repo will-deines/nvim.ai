@@ -1,5 +1,5 @@
 M = {}
-M.PROMP = [[{{#language_name}}
+M.PROMPT = [[{{#language_name}}
 Here's a file of {{language_name}} that I'm going to ask you to make an edit to.
 {{/language_name}}
 {{^language_name}}

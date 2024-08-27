@@ -18,19 +18,15 @@ M.parse_message = function(opts)
   }
 end
 
-M.parse_response = function(data_stream, _, opts)
-  if data_stream == nil or data_stream == "" then
-    return
+M.parse_response = function(data, event, opts)
+  if event == "message_stop" then
+    opts.on_complete(nil)
+  elseif event == "content_block_delta" and data.delta and data.delta.type == "text_delta" then
+    opts.on_chunk(data.delta.text)
+  elseif event == "error" then
+    opts.on_complete(data.error)
   end
-  local data_match = data_stream:match("^data: (.+)$")
-  if data_match ~= nil then
-    local json = vim.json.decode(data_match)
-    if json.type == 'content_block_delta' then
-      opts.on_chunk(json.delta.text)
-    elseif json.type == 'message_stop' then
-      opts.on_complete(nil)
-    end
-  end
+  -- Handle other event types as needed
 end
 
 M.parse_curl_args = function(provider, code_opts)

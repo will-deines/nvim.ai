@@ -1,19 +1,53 @@
 local api = vim.api
-
 local Utils = require("ai.utils")
 local Config = require("ai.config")
 local P = require("ai.providers")
-
 local curl = require("plenary.curl")
 
 local M = {}
 
 M.CANCEL_PATTERN = "NVIMAIHTTPEscape"
 
-------------------------------Prompt and type------------------------------
-
 local group = api.nvim_create_augroup("NVIMAIHTTP", { clear = true })
 local active_job = nil
+
+local function safe_json_decode(str)
+  local success, result = pcall(vim.json.decode, str)
+  if success then
+    return result
+  else
+    return nil
+  end
+end
+
+local function parse_stream_data(provider, line, current_event_state, handler_opts)
+  print("Received line:", vim.inspect(line)) -- Debug print
+
+  -- Handle OpenAI format
+  if line:match("^data: ") then
+    local data = line:match("^data: (.+)$")
+    if data == "[DONE]" then
+      handler_opts.on_complete(nil)
+    else
+      P[provider].parse_response(data, current_event_state, handler_opts)
+    end
+    return
+  end
+
+  -- Handle Anthropic format
+  local event, data = line:match("^event:%s*(.-)%s*\ndata:%s*(.+)$")
+  if event and data then
+    local json_data = safe_json_decode(data)
+    if json_data then
+      P[provider].parse_response(json_data, event, handler_opts)
+    else
+      print("Failed to parse JSON data:", vim.inspect(data))
+    end
+    return
+  end
+
+  print("Unhandled line format:", vim.inspect(line))
+end
 
 M.stream = function(system_prompt, prompt, on_chunk, on_complete)
   local provider = Config.config.provider
@@ -22,24 +56,11 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete)
     system_prompt = system_prompt,
   }
 
-  ---@type string
   local current_event_state = nil
-
   local Provider = P[provider]
 
   local handler_opts = { on_chunk = on_chunk, on_complete = on_complete }
   local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts)
-
-  ---@param line string
-  local function parse_stream_data(line)
-    local event = line:match("^event: (.+)$")
-    if event then
-      current_event_state = event
-      return
-    end
-    -- local data_match = line:match("^data: (.+)$")
-    Provider.parse_response(line, current_event_state, handler_opts)
-  end
 
   if active_job then
     active_job:shutdown()
@@ -53,32 +74,28 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete)
     body = vim.json.encode(spec.body),
     stream = function(err, data, _)
       if err then
+        print("Stream error:", vim.inspect(err))
         on_complete(err)
         return
       end
       if not data then
         return
       end
+      print("Raw data received in http.lua:", vim.inspect(data)) -- Debug print
       vim.schedule(function()
-        if Config.config[provider] == nil and Provider.parse_stream_data ~= nil then
-          if Provider.parse_response ~= nil then
-            Utils.warn(
-              "parse_stream_data and parse_response_data are mutually exclusive, and thus parse_response_data will be ignored. Make sure that you handle the incoming data correctly.",
-              { once = true }
-            )
-          end
-          Provider.parse_stream_data(data, handler_opts)
-        else
-          parse_stream_data(data)
+        -- Split the data into lines and process each line
+        for line in data:gmatch("[^\r\n]+") do
+          parse_stream_data(provider, line, current_event_state, handler_opts)
         end
       end)
     end,
     on_error = function(err)
-      print('http error', vim.inspect(err))
+      print("http error", vim.inspect(err))
       on_complete(err)
     end,
     callback = function(_)
       active_job = nil
+      print("Stream completed")
     end,
   })
 
