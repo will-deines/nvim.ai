@@ -2,6 +2,7 @@ local config = require("ai.config")
 local Assistant = require("ai.assistant")
 local api = vim.api
 local path = require("plenary.path")
+local scan = require("plenary.scandir")
 
 local ChatDialog = {}
 
@@ -292,34 +293,38 @@ function ChatDialog.get_chat_history()
       else
         table.insert(chat_history, line .. " (File not found or unreadable)")
       end
+    elseif line:match("^/dir%s+(.+)") then
+      local dir_path = line:match("^/dir%s+(.+)")
+      local files = scan.scan_dir(dir_path, {
+        hidden = true,
+        respect_gitignore = true,
+        only_dirs = false,
+        on_insert = function(file)
+          local relative_path = vim.fn.fnamemodify(file, ":.")
+          table.insert(chat_history, string.format("/file %s", relative_path))
+        end,
+      })
     elseif current_entry then
       current_entry = current_entry .. "\n" .. line
     end
   end
-
   if current_entry then
     table.insert(chat_history, current_entry)
   end
-
   return table.concat(chat_history, "\n")
 end
-
 function ChatDialog.send()
   local system_prompt = ChatDialog.get_system_prompt()
   local chat_history = ChatDialog.get_chat_history()
-
   local last_user_request = ChatDialog.last_user_request()
   local full_prompt = chat_history .. "\n/you:\n" .. last_user_request
-
   ChatDialog.append_text("\n\n/assistant:\n")
   Assistant.ask(system_prompt, full_prompt, ChatDialog.append_text, ChatDialog.on_complete)
 end
-
 function ChatDialog.get_system_prompt()
   if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
     return nil
   end
-
   local lines = api.nvim_buf_get_lines(state.buf, 0, -1, false)
   for _, line in ipairs(lines) do
     if line:match("^/system%s(.+)") then
@@ -328,16 +333,13 @@ function ChatDialog.get_system_prompt()
   end
   return nil
 end
-
 -- Function to get the last user request from the buffer
 function ChatDialog.last_user_request()
   if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
     return nil
   end
-
   local lines = api.nvim_buf_get_lines(state.buf, 0, -1, false)
   local last_request = {}
-
   for i = #lines, 1, -1 do
     local line = lines[i]
     if line:match("^/you") then
@@ -347,14 +349,12 @@ function ChatDialog.last_user_request()
       table.insert(last_request, 1, line)
     end
   end
-
   if #last_request > 0 then
     return table.concat(last_request, "\n")
   else
     return nil
   end
 end
-
 function ChatDialog.setup()
   ChatDialog.config = vim.tbl_deep_extend("force", ChatDialog.config, config.config.ui or {})
   -- Create user commands
@@ -382,5 +382,4 @@ function ChatDialog.setup()
     end,
   })
 end
-
 return ChatDialog

@@ -1,35 +1,55 @@
--- source.lu
--- source.lua
 local cmp = require("cmp")
 local source = {}
+local scan = require("plenary.scandir")
+
 -- List of special commands
 local special_commands = {
   { label = "/system", kind = cmp.lsp.CompletionItemKind.Keyword },
   { label = "/you", kind = cmp.lsp.CompletionItemKind.Keyword },
   { label = "/buf", kind = cmp.lsp.CompletionItemKind.Keyword },
   { label = "/file", kind = cmp.lsp.CompletionItemKind.Keyword },
+  { label = "/dir", kind = cmp.lsp.CompletionItemKind.Keyword },
 }
+
 source.new = function(get_file_cache)
   local self = setmetatable({}, { __index = source })
   self.get_file_cache = get_file_cache
   return self
 end
+
 source.get_trigger_characters = function()
   return { "/" }
 end
+
 source.get_keyword_pattern = function()
   return [[\%(/\k*\)]]
 end
+
 local function optimized_sort(items)
   table.sort(items, function(a, b)
     return a.label < b.label
   end)
 end
+
+local function get_directories(cwd)
+  local dirs = {}
+  scan.scan_dir(cwd, {
+    hidden = true,
+    respect_gitignore = true,
+    only_dirs = true,
+    on_insert = function(dir)
+      table.insert(dirs, dir)
+    end,
+  })
+  return dirs
+end
+
 source.complete = function(self, request, callback)
   local input = string.sub(request.context.cursor_before_line, request.offset)
   local items = {}
   local cwd = vim.fn.getcwd()
   print("Completion request input:", input)
+
   if input:match("^/buf") then
     -- Handle /buf command
     local buffers = vim.api.nvim_list_bufs()
@@ -93,6 +113,46 @@ source.complete = function(self, request, callback)
       print("File items:", vim.inspect(items))
       callback({ items = items, isIncomplete = true })
     end
+  elseif input:match("^/dir%s*") then
+    -- Handle /dir command
+    local dir_input = input:match("^/dir%s*(.*)")
+    print("Dir input:", dir_input)
+    local dirs = get_directories(cwd)
+    if dir_input == "" then
+      -- Show directories
+      for _, dir in ipairs(dirs) do
+        local relative_path = vim.fn.fnamemodify(dir, ":.")
+        table.insert(items, {
+          label = string.format("/dir %s", relative_path),
+          kind = cmp.lsp.CompletionItemKind.Folder,
+          documentation = {
+            kind = cmp.lsp.MarkupKind.Markdown,
+            value = string.format("Directory: %s", dir),
+          },
+        })
+      end
+      optimized_sort(items)
+      print("Dir items:", vim.inspect(items))
+      callback({ items = items, isIncomplete = true })
+    else
+      -- Use the directories for completion
+      for _, dir in ipairs(dirs) do
+        if dir:find(dir_input, 1, true) then
+          local relative_path = vim.fn.fnamemodify(dir, ":.")
+          table.insert(items, {
+            label = string.format("/dir %s", relative_path),
+            kind = cmp.lsp.CompletionItemKind.Folder,
+            documentation = {
+              kind = cmp.lsp.MarkupKind.Markdown,
+              value = string.format("Directory: %s", dir),
+            },
+          })
+        end
+      end
+      optimized_sort(items)
+      print("Dir items:", vim.inspect(items))
+      callback({ items = items, isIncomplete = true })
+    end
   else
     -- Handle other special commands
     for _, command in ipairs(special_commands) do
@@ -106,4 +166,5 @@ source.complete = function(self, request, callback)
     callback({ items = items, isIncomplete = true })
   end
 end
+
 return source
