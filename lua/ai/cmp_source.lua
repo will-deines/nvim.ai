@@ -7,8 +7,6 @@ local special_commands = {
   { label = "/system", kind = cmp.lsp.CompletionItemKind.Keyword },
   { label = "/you", kind = cmp.lsp.CompletionItemKind.Keyword },
   { label = "/buf", kind = cmp.lsp.CompletionItemKind.Keyword },
-  { label = "/file", kind = cmp.lsp.CompletionItemKind.Keyword },
-  { label = "/dir", kind = cmp.lsp.CompletionItemKind.Keyword },
 }
 
 source.new = function(get_file_cache)
@@ -128,6 +126,7 @@ source.complete = function(self, request, callback)
     callback({ items = items, isIncomplete = true })
   elseif input:match("^/dir%s+$") then
     -- Handle /dir command only after a space
+    print("Handling /dir command")
     local dirs = get_directories(cwd)
     for _, dir in ipairs(dirs) do
       local relative_path = vim.fn.fnamemodify(dir, ":.")
