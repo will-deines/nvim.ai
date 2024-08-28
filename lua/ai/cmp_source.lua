@@ -54,7 +54,7 @@ end
 local function handle_file_command(self, input, callback)
   local items = {}
   local file_cache = self.get_file_cache()
-  if input:match("^/file%s+$") then
+  if input:match("^/file%s*$") then
     -- Handle /file command only after a space
     for _, file in ipairs(file_cache) do
       local relative_path = vim.fn.fnamemodify(file, ":.")
@@ -91,7 +91,7 @@ end
 local function handle_dir_command(input, callback)
   local items = {}
   local cwd = vim.fn.getcwd()
-  if input:match("^/dir%s+$") then
+  if input:match("^/dir%s*$") then
     -- Handle /dir command only after a space
     local dirs = get_directories(cwd)
     for _, dir in ipairs(dirs) do
@@ -182,19 +182,19 @@ source.complete = function(self, request, callback)
   if input == "/" then
     -- Show special commands when input is exactly "/"
     handle_special_commands(callback)
-  elseif input:match("^/buf") then
+  elseif input:match("^/buf%s*$") then
     -- Handle /buf command
     handle_buf_command(callback)
-  elseif input:match("^/file") then
+  elseif input:match("^/file%s*$") then
     -- Delegate to handle_file_command
     handle_file_command(self, input, callback)
-  elseif input:match("^/dir") then
+  elseif input:match("^/dir%s*$") then
     -- Delegate to handle_dir_command
     handle_dir_command(input, callback)
-  elseif input:match("^/you") then
+  elseif input:match("^/you%s*$") then
     -- Handle /you command
     handle_you_command(callback)
-  elseif input:match("^/system") then
+  elseif input:match("^/system%s*$") then
     -- Handle /system command
     handle_system_command(callback)
   else
