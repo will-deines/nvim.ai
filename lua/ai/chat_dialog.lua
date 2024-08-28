@@ -3,15 +3,12 @@ local Assistant = require("ai.assistant")
 local api = vim.api
 local path = require("plenary.path")
 local scan = require("plenary.scandir")
-
 local ChatDialog = {}
-
 ChatDialog.config = {
   width = 40,
   side = "right",
   borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
 }
-
 local state = {
   buf = nil,
   win = nil,
@@ -40,7 +37,6 @@ local function get_win_config()
   local width = ChatDialog.config.width
   local height = api.nvim_get_option("lines") - 4
   local col = ChatDialog.config.side == "left" and 0 or (api.nvim_get_option("columns") - width)
-
   return {
     relative = "editor",
     width = width,
@@ -60,10 +56,8 @@ end
 local function generate_chat_filename()
   local project_name = get_project_name()
   local save_dir = config.config.saved_chats_dir .. "/" .. project_name
-
   -- Create the directory if it doesn't exist
   vim.fn.mkdir(save_dir, "p")
-
   -- Generate a unique filename based on timestamp
   local timestamp = os.date("%Y%m%d_%H%M%S")
   local filename = save_dir .. "/chat_" .. timestamp .. ".md"
@@ -75,23 +69,18 @@ function ChatDialog.save_file()
     print("No valid chat buffer to save.")
     return
   end
-
   local filename = state.last_saved_file or generate_chat_filename()
-
   -- Get buffer contents
   local lines = api.nvim_buf_get_lines(state.buf, 0, -1, false)
   local content = table.concat(lines, "\n")
-
   -- Write to file
   local file = io.open(filename, "w")
   if file then
     file:write(content)
     file:close()
     print("Chat saved to: " .. filename)
-
     -- Set the buffer name to the saved file path
     api.nvim_buf_set_name(state.buf, filename)
-
     -- Update the last saved file
     state.last_saved_file = filename
   else
@@ -102,16 +91,13 @@ end
 local function find_most_recent_chat_file()
   local project_name = get_project_name()
   local save_dir = config.config.saved_chats_dir .. "/" .. project_name
-
   local files = vim.fn.glob(save_dir .. "/chat_*.md", 0, 1)
   table.sort(files, function(a, b)
     return vim.fn.getftime(a) > vim.fn.getftime(b)
   end)
-
   if state.last_saved_file == nil then
     state.last_saved_file = files[1]
   end
-
   return files[1] -- Return the most recent file, or nil if no files found
 end
 
@@ -212,31 +198,25 @@ function ChatDialog.append_text(text)
   then
     return
   end
-
   vim.schedule(function()
     -- Get the last line and its content
     local last_line = api.nvim_buf_line_count(state.buf)
     local last_line_content = api.nvim_buf_get_lines(state.buf, -2, -1, false)[1] or ""
-
     -- Split the new text into lines
     local new_lines = vim.split(text, "\n", { plain = true })
-
     -- Append the first line to the last line of the buffer
     local updated_last_line = last_line_content .. new_lines[1]
     api.nvim_buf_set_lines(state.buf, -2, -1, false, { updated_last_line })
-
     -- Append the rest of the lines, if any
     if #new_lines > 1 then
       api.nvim_buf_set_lines(state.buf, -1, -1, false, { unpack(new_lines, 2) })
     end
-
     -- Add virtual text for code blocks
     for i, line in ipairs(new_lines) do
       if line:match("^```") then
         set_virtual_text(state.buf, last_line + i - 1, "Copy Code")
       end
     end
-
     -- Scroll to bottom
     if state.win and api.nvim_win_is_valid(state.win) then
       local new_last_line = api.nvim_buf_line_count(state.buf)
@@ -250,11 +230,9 @@ function ChatDialog.clear()
   if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
     return
   end
-
   api.nvim_buf_set_option(state.buf, "modifiable", true)
   api.nvim_buf_set_lines(state.buf, 0, -1, false, { "/you:", "", "" })
   state.last_saved_file = nil
-
   -- Set the cursor to the end of the two newlines after "/you:"
   if state.win and api.nvim_win_is_valid(state.win) then
     api.nvim_win_set_cursor(state.win, { 3, 0 })
@@ -265,11 +243,9 @@ function ChatDialog.get_chat_history()
   if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
     return ""
   end
-
   local lines = api.nvim_buf_get_lines(state.buf, 0, -1, false)
   local chat_history = {}
   local current_entry = nil
-
   for _, line in ipairs(lines) do
     if line:match("^/you:") or line:match("^/assistant:") or line:match("^/system:") then
       if current_entry then
@@ -295,7 +271,7 @@ function ChatDialog.get_chat_history()
       end
     elseif line:match("^/dir%s+(.+)") then
       local dir_path = line:match("^/dir%s+(.+)")
-      local files = scan.scan_dir(dir_path, {
+      scan.scan_dir(dir_path, {
         hidden = true,
         respect_gitignore = true,
         only_dirs = false,
@@ -313,6 +289,7 @@ function ChatDialog.get_chat_history()
   end
   return table.concat(chat_history, "\n")
 end
+
 function ChatDialog.send()
   local system_prompt = ChatDialog.get_system_prompt()
   local chat_history = ChatDialog.get_chat_history()
@@ -321,6 +298,7 @@ function ChatDialog.send()
   ChatDialog.append_text("\n\n/assistant:\n")
   Assistant.ask(system_prompt, full_prompt, ChatDialog.append_text, ChatDialog.on_complete)
 end
+
 function ChatDialog.get_system_prompt()
   if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
     return nil
@@ -333,6 +311,7 @@ function ChatDialog.get_system_prompt()
   end
   return nil
 end
+
 -- Function to get the last user request from the buffer
 function ChatDialog.last_user_request()
   if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
@@ -355,6 +334,7 @@ function ChatDialog.last_user_request()
     return nil
   end
 end
+
 function ChatDialog.setup()
   ChatDialog.config = vim.tbl_deep_extend("force", ChatDialog.config, config.config.ui or {})
   -- Create user commands
@@ -382,4 +362,5 @@ function ChatDialog.setup()
     end,
   })
 end
+
 return ChatDialog
