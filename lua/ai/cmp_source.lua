@@ -1,6 +1,7 @@
 local cmp = require("cmp")
 local source = {}
 local scan = require("plenary.scandir")
+
 -- List of special commands
 local special_commands = {
   { label = "/system", kind = cmp.lsp.CompletionItemKind.Keyword },
@@ -9,22 +10,27 @@ local special_commands = {
   { label = "/file", kind = cmp.lsp.CompletionItemKind.Keyword },
   { label = "/dir", kind = cmp.lsp.CompletionItemKind.Keyword },
 }
+
 source.new = function(get_file_cache)
   local self = setmetatable({}, { __index = source })
   self.get_file_cache = get_file_cache
   return self
 end
+
 source.get_trigger_characters = function()
   return { "/", " " }
 end
+
 source.get_keyword_pattern = function()
   return [[\%(/\k*\)]]
 end
+
 local function optimized_sort(items)
   table.sort(items, function(a, b)
     return a.label < b.label
   end)
 end
+
 local function get_directories(cwd)
   local dirs = {}
   scan.scan_dir(cwd, {
@@ -37,17 +43,20 @@ local function get_directories(cwd)
   })
   return dirs
 end
+
 local function fuzzy_match(input, str)
   local pattern = ".*" .. input:gsub(".", function(c)
     return c .. ".*"
   end)
   return str:match(pattern) ~= nil
 end
+
 source.complete = function(self, request, callback)
   local input = string.sub(request.context.cursor_before_line, request.offset)
   local items = {}
   local cwd = vim.fn.getcwd()
   print("Completion request input:", input)
+
   if input == "/" then
     -- Show special commands when input is exactly "/"
     for _, command in ipairs(special_commands) do
@@ -168,4 +177,5 @@ source.complete = function(self, request, callback)
     callback({ items = items, isIncomplete = true })
   end
 end
+
 return source
