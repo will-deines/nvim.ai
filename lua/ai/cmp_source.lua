@@ -18,7 +18,7 @@ source.new = function(get_file_cache)
 end
 
 source.get_trigger_characters = function()
-  return { "/" }
+  return { "/", " " }
 end
 
 source.get_keyword_pattern = function()
@@ -42,6 +42,13 @@ local function get_directories(cwd)
     end,
   })
   return dirs
+end
+
+local function fuzzy_match(input, str)
+  local pattern = ".*" .. input:gsub(".", function(c)
+    return c .. ".*"
+  end)
+  return str:match(pattern) ~= nil
 end
 
 source.complete = function(self, request, callback)
@@ -97,7 +104,7 @@ source.complete = function(self, request, callback)
     else
       -- Use the cache for file completion
       for _, file in ipairs(file_cache) do
-        if file:find(file_input, 1, true) then
+        if fuzzy_match(file_input, file) then
           local relative_path = vim.fn.fnamemodify(file, ":.")
           table.insert(items, {
             label = string.format("/file %s", relative_path),
@@ -137,7 +144,7 @@ source.complete = function(self, request, callback)
     else
       -- Use the directories for completion
       for _, dir in ipairs(dirs) do
-        if dir:find(dir_input, 1, true) then
+        if fuzzy_match(dir_input, dir) then
           local relative_path = vim.fn.fnamemodify(dir, ":.")
           table.insert(items, {
             label = string.format("/dir %s", relative_path),
