@@ -22,7 +22,7 @@ source.get_trigger_characters = function()
 end
 
 source.get_keyword_pattern = function()
-  return [[\%(/\k*\)]]
+  return [[\%(/\k*\s*\k*\)]]
 end
 
 local function optimized_sort(items)
