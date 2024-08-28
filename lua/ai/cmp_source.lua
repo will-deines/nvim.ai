@@ -18,7 +18,7 @@ source.new = function(get_file_cache)
 end
 
 source.get_trigger_characters = function()
-  return { "/", " " }
+  return { "/" }
 end
 
 source.get_keyword_pattern = function()
@@ -54,9 +54,9 @@ end
 local function handle_file_command(self, input, callback)
   local items = {}
   local file_cache = self.get_file_cache()
-  if input:match("^/file%s*$") then
-    -- Handle /file command only after a space
-    for _, file in ipairs(file_cache) do
+  local file_input = input:match("^/file%s+(.*)")
+  for _, file in ipairs(file_cache) do
+    if fuzzy_match(file_input, file) then
       local relative_path = vim.fn.fnamemodify(file, ":.")
       table.insert(items, {
         label = string.format("/file %s", relative_path),
@@ -67,22 +67,6 @@ local function handle_file_command(self, input, callback)
         },
       })
     end
-  elseif input:match("^/file%s+.*") then
-    -- Handle /file command with fuzzy matching
-    local file_input = input:match("^/file%s+(.*)")
-    for _, file in ipairs(file_cache) do
-      if fuzzy_match(file_input, file) then
-        local relative_path = vim.fn.fnamemodify(file, ":.")
-        table.insert(items, {
-          label = string.format("/file %s", relative_path),
-          kind = cmp.lsp.CompletionItemKind.File,
-          documentation = {
-            kind = cmp.lsp.MarkupKind.Markdown,
-            value = string.format("File: %s", file),
-          },
-        })
-      end
-    end
   end
   optimized_sort(items)
   callback({ items = items, isIncomplete = true })
@@ -91,10 +75,10 @@ end
 local function handle_dir_command(input, callback)
   local items = {}
   local cwd = vim.fn.getcwd()
-  if input:match("^/dir%s*$") then
-    -- Handle /dir command only after a space
-    local dirs = get_directories(cwd)
-    for _, dir in ipairs(dirs) do
+  local dir_input = input:match("^/dir%s+(.*)")
+  local dirs = get_directories(cwd)
+  for _, dir in ipairs(dirs) do
+    if fuzzy_match(dir_input, dir) then
       local relative_path = vim.fn.fnamemodify(dir, ":.")
       table.insert(items, {
         label = string.format("/dir %s", relative_path),
@@ -104,23 +88,6 @@ local function handle_dir_command(input, callback)
           value = string.format("Directory: %s", dir),
         },
       })
-    end
-  elseif input:match("^/dir%s+.*") then
-    -- Handle /dir command with fuzzy matching
-    local dir_input = input:match("^/dir%s+(.*)")
-    local dirs = get_directories(cwd)
-    for _, dir in ipairs(dirs) do
-      if fuzzy_match(dir_input, dir) then
-        local relative_path = vim.fn.fnamemodify(dir, ":.")
-        table.insert(items, {
-          label = string.format("/dir %s", relative_path),
-          kind = cmp.lsp.CompletionItemKind.Folder,
-          documentation = {
-            kind = cmp.lsp.MarkupKind.Markdown,
-            value = string.format("Directory: %s", dir),
-          },
-        })
-      end
     end
   end
   optimized_sort(items)
@@ -185,10 +152,10 @@ source.complete = function(self, request, callback)
   elseif input:match("^/buf%s*$") then
     -- Handle /buf command
     handle_buf_command(callback)
-  elseif input:match("^/file%s*$") then
+  elseif input:match("^/file%s+.*") then
     -- Delegate to handle_file_command
     handle_file_command(self, input, callback)
-  elseif input:match("^/dir%s*$") then
+  elseif input:match("^/dir%s+.*") then
     -- Delegate to handle_dir_command
     handle_dir_command(input, callback)
   elseif input:match("^/you%s*$") then
