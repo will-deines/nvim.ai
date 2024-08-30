@@ -12,22 +12,39 @@ M.setup_keymaps = function()
   -- Global keymaps
   local keymaps = Config.get("keymaps")
   print(vim.inspect(keymaps)) -- Debug print to inspect the keymaps table
+
+  -- Add debug prints before each keymap set
+  print("Setting toggle keymap")
   vim.keymap.set({ "n", "v" }, keymaps.toggle, ChatDialog.toggle, { noremap = true, silent = true })
+
+  print("Setting inline_assist keymap")
   vim.keymap.set("n", keymaps.inline_assist, ":NvimAIInlineAssist", { noremap = true, silent = true })
+
+  print("Setting accept_code keymap")
   vim.keymap.set("n", keymaps.accept_code, Assistant.accept_code, { noremap = true, silent = true })
+
+  print("Setting reject_code keymap")
   vim.keymap.set("n", keymaps.reject_code, Assistant.reject_code, { noremap = true, silent = true })
+
   -- Buffer-specific keymaps for ChatDialog
   local function set_chat_dialog_keymaps()
     local opts = { noremap = true, silent = true, buffer = true }
+    print("Setting close keymap")
     vim.keymap.set("n", keymaps.close, ChatDialog.close, opts)
+
+    print("Setting send keymap")
     vim.keymap.set("n", keymaps.send, ChatDialog.send, opts)
+
+    print("Setting clear keymap")
     vim.keymap.set("n", keymaps.clear, ChatDialog.clear, opts)
   end
+
   -- Create an autocommand to set ChatDialog keymaps when entering the chat-dialog buffer
   vim.api.nvim_create_autocmd("FileType", {
     pattern = Config.FILE_TYPE,
     callback = set_chat_dialog_keymaps,
   })
+
   -- automatically setup Avante filetype to markdown
   vim.treesitter.language.register("markdown", Config.FILE_TYPE)
 end
