@@ -154,10 +154,13 @@ end
 
 -- Add a function to parse and store the model from the /model command
 local function parse_model_command(line)
+  print("parse_model_command called with line:", line) -- Debug print
   local model = line:match("^/model%s+(.+)")
   if model then
     state.current_model = model
-    print("Model set to: " .. model)
+    print("Model set to: " .. model) -- Debug print
+  else
+    print("No model found in line:", line) -- Debug print
   end
 end
 
@@ -180,7 +183,11 @@ end
 
 function ChatDialog.clear()
   if state.buf and api.nvim_buf_is_valid(state.buf) then
-    api.nvim_buf_set_lines(state.buf, 0, -1, false, {})
+    api.nvim_buf_set_lines(state.buf, 0, -1, false, { "/you:", "", "" })
+    -- Set the cursor to the end of the two newlines after "/you:"
+    if state.win and api.nvim_win_is_valid(state.win) then
+      api.nvim_win_set_cursor(state.win, { 3, 0 })
+    end
   end
 end
 

@@ -136,15 +136,6 @@ local function handle_model_command(callback)
   callback({ items = items, isIncomplete = true })
 end
 
-local function handle_special_commands(callback)
-  local items = {}
-  for _, command in ipairs(special_commands) do
-    table.insert(items, command)
-  end
-  optimized_sort(items)
-  callback({ items = items, isIncomplete = true })
-end
-
 source.complete = function(self, request, callback)
   local input = string.sub(request.context.cursor_before_line, request.offset)
   print("Completion request input:", input)
