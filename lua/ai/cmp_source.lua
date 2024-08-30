@@ -127,8 +127,10 @@ local function handle_buf_command(callback)
 end
 
 local function handle_model_command(callback)
+  print("Inside handle_model_command") -- Debug print
   local items = {}
   for _, model in ipairs(model_list) do
+    print("Adding model:", model.label) -- Debug print
     table.insert(items, model)
   end
   optimized_sort(items)
@@ -137,22 +139,17 @@ end
 
 source.complete = function(self, request, callback)
   local input = string.sub(request.context.cursor_before_line, request.offset)
-  -- print("Completion request input:", input) -- Debug print
-
+  print("Completion request input:", input) -- Debug print
   if input:match("^/buf%s*$") then
-    -- Handle /buf command
     handle_buf_command(callback)
   elseif input:match("^/file%s+.*") then
-    -- Delegate to handle_file_command
     handle_file_command(self, input, callback)
   elseif input:match("^/dir%s+.*") then
-    -- Delegate to handle_dir_command
     handle_dir_command(input, callback)
   elseif input:match("^/model%s+.*") then
-    -- Delegate to handle_model_command
+    print("Handling /model command") -- Debug print
     handle_model_command(callback)
   else
-    -- Do not trigger autocomplete for other inputs
     callback({ items = {}, isIncomplete = true })
   end
 end
