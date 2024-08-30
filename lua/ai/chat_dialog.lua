@@ -153,11 +153,11 @@ function ChatDialog.on_complete(t)
   end)
 end
 
--- Add a function to parse and store the model from the /model command
 local function parse_model_command(line)
   print("parse_model_command called with line:", line) -- Debug print
-  local model = line:match("^/model%s+(.+)")
-  if model then
+  -- Split the line by spaces and consider only the first two parts for the model command
+  local command, model = line:match("^(%S+)%s+(%S+)")
+  if command == "/model" and model then
     state.current_model = model
     print("Model set to: " .. model) -- Debug print
   else
