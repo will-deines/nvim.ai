@@ -14,12 +14,12 @@ M.parse_message = function(opts)
 end
 M.parse_response = function(data_stream, event, opts)
   print("Received data_stream in anthropic.lua:", vim.inspect(data_stream))
+  print("Event type:", event)
 
   if data_stream == nil or data_stream == "" then
     print("Empty data_stream, returning")
     return
   end
-
   -- If data_stream is already a table (decoded JSON), handle it directly
   if type(data_stream) == "table" then
     if event == "message_start" then
@@ -41,7 +41,6 @@ M.parse_response = function(data_stream, event, opts)
     end
     return
   end
-
   -- Try to decode the entire data_stream as JSON
   local success, json = pcall(vim.json.decode, data_stream)
   if success then
@@ -53,7 +52,6 @@ M.parse_response = function(data_stream, event, opts)
     opts.on_complete(nil)
     return
   end
-
   -- If it's not valid JSON, it might be a stream chunk
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
