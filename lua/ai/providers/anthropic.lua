@@ -18,36 +18,17 @@ M.parse_message = function(opts)
   }
 end
 
-M.parse_response = function(data_stream, _, opts)
-  print("Received data_stream in anthropic.lua:", vim.inspect(data_stream))
+M.parse_response = function(json, event, opts)
+  print("Received JSON in anthropic.lua:", vim.inspect(json))
 
-  if data_stream == nil or data_stream == "" then
-    print("Empty data_stream, returning")
-    return
-  end
-
-  -- Split the data_stream into lines
-  local lines = vim.split(data_stream, "\n")
-  for _, line in ipairs(lines) do
-    if line:match("^data: ") then
-      local data = line:sub(7) -- Remove "data: " prefix
-      local success, json = pcall(vim.json.decode, data)
-      if success then
-        print("Successfully decoded JSON from data:", vim.inspect(json))
-        local event = json.type
-        if event == "message_stop" then
-          opts.on_complete(nil)
-        elseif event == "content_block_delta" and json.delta and json.delta.type == "text_delta" then
-          opts.on_chunk(json.delta.text)
-        elseif event == "error" then
-          opts.on_complete(json.error)
-        else
-          print("Unhandled event type:", event)
-        end
-      else
-        print("Failed to decode JSON from data:", data)
-      end
-    end
+  if event == "message_stop" then
+    opts.on_complete(nil)
+  elseif event == "content_block_delta" and json.delta and json.delta.type == "text_delta" then
+    opts.on_chunk(json.delta.text)
+  elseif event == "error" then
+    opts.on_complete(json.error)
+  else
+    print("Unhandled event type:", event)
   end
 end
 

@@ -21,25 +21,27 @@ local function safe_json_decode(str)
 end
 
 local function parse_stream_data(provider, line, current_event_state, handler_opts)
+  if line:match("^event: ") then
+    current_event_state = line:match("^event: (.+)$")
+    return
+  end
+
   if line:match("^data: ") then
     local data = line:match("^data: (.+)$")
     if data == "[DONE]" then
       handler_opts.on_complete(nil)
     else
-      P[provider].parse_response(data, current_event_state, handler_opts)
+      local success, json = pcall(vim.json.decode, data)
+      if success then
+        print("Successfully decoded JSON from data:", vim.inspect(json))
+        P[provider].parse_response(json, current_event_state, handler_opts)
+      else
+        print("Failed to decode JSON from data:", data)
+      end
     end
     return
   end
-  local event, data = line:match("^event:%s*(.-)%s*\ndata:%s*(.+)$")
-  if event and data then
-    local json_data = safe_json_decode(data)
-    if json_data then
-      P[provider].parse_response(json_data, event, handler_opts)
-    else
-      print("Failed to parse JSON data:", vim.inspect(data))
-    end
-    return
-  end
+
   print("Unhandled line format:", vim.inspect(line))
 end
 
