@@ -15,6 +15,7 @@ local state = {
   buf = nil,
   win = nil,
   last_saved_file = nil,
+  current_model = nil,
 }
 
 local function create_buf()
