@@ -1,7 +1,8 @@
 local ChatDialog = require("ai.chat_dialog")
-local Assistant = require('ai.assistant')
-return {
+local Assistant = require("ai.assistant")
+local code_block_navigator = require("ai.chat-dialog-handlers.code_block_navigator")
 
+return {
   {
     cmd = "NvimAIToggleChatDialog",
     callback = function()
@@ -43,5 +44,14 @@ return {
       range = true,
       nargs = "*",
     },
-  }
+  },
+  {
+    cmd = "NvimAINavigateCodeBlocks",
+    callback = function()
+      code_block_navigator.identify_and_navigate_code_blocks()
+    end,
+    opts = {
+      desc = "Navigate and copy code blocks",
+    },
+  },
 }

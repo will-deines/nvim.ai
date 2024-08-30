@@ -90,7 +90,7 @@ M.parse_curl_args = function(provider, code_opts)
     insecure = base.allow_insecure,
     headers = headers,
     body = vim.tbl_deep_extend("force", {
-      model = base.model,
+      model = model or base.model,
       messages = messages,
       stream = true,
     }, body_opts),

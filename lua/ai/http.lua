@@ -49,7 +49,7 @@ local function parse_stream_data(provider, line, current_event_state, handler_op
   print("Unhandled line format:", vim.inspect(line))
 end
 
-M.stream = function(system_prompt, prompt, on_chunk, on_complete)
+M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
   local provider = Config.config.provider
   local code_opts = {
     base_prompt = prompt,
@@ -60,7 +60,7 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete)
   local Provider = P[provider]
 
   local handler_opts = { on_chunk = on_chunk, on_complete = on_complete }
-  local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts)
+  local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts, model)
 
   if active_job then
     active_job:shutdown()

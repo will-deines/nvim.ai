@@ -1,27 +1,21 @@
 local config = require("ai.config")
 local Assistant = require("ai.assistant")
 local api = vim.api
-local path = require("plenary.path")
-local scan = require("plenary.scandir")
+local message_handler = require("ai.chat-dialog-handlers.message_handler")
+local code_block_navigator = require("ai.chat-dialog-handlers.code_block_navigator")
+
 local ChatDialog = {}
 ChatDialog.config = {
   width = 40,
   side = "right",
   borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
 }
+
 local state = {
   buf = nil,
   win = nil,
   last_saved_file = nil,
 }
-
-local function get_file_content(file_path)
-  local p = path:new(file_path)
-  if p:exists() and not p:is_dir() then
-    return p:read()
-  end
-  return nil
-end
 
 local function create_buf()
   local buf = api.nvim_create_buf(false, true)
@@ -152,185 +146,35 @@ function ChatDialog.toggle()
 end
 
 function ChatDialog.on_complete(t)
-  ChatDialog.append_text("\n\n/you:\n")
+  message_handler.append_text(state, "\n\n/you:\n")
   vim.schedule(function()
     ChatDialog.save_file()
   end)
 end
 
-function ChatDialog.append_text(text)
-  if
-    not state.buf
-    or not pcall(vim.api.nvim_buf_is_loaded, state.buf)
-    or not pcall(vim.api.nvim_buf_get_option, state.buf, "buflisted")
-  then
-    return
+-- Add a function to parse and store the model from the /model command
+local function parse_model_command(line)
+  local model = line:match("^/model%s+(.+)")
+  if model then
+    state.current_model = model
+    print("Model set to: " .. model)
   end
-  vim.schedule(function()
-    -- Get the last line and its content
-    local last_line = api.nvim_buf_line_count(state.buf)
-    local last_line_content = api.nvim_buf_get_lines(state.buf, -2, -1, false)[1] or ""
-    -- Split the new text into lines
-    local new_lines = vim.split(text, "\n", { plain = true })
-    -- Append the first line to the last line of the buffer
-    local updated_last_line = last_line_content .. new_lines[1]
-    api.nvim_buf_set_lines(state.buf, -2, -1, false, { updated_last_line })
-    -- Append the rest of the lines, if any
-    if #new_lines > 1 then
-      api.nvim_buf_set_lines(state.buf, -1, -1, false, { unpack(new_lines, 2) })
-    end
-    -- Identify code blocks and insert inline commands
-    local in_code_block = false
-    for i, line in ipairs(new_lines) do
-      if line:match("^```") then
-        if in_code_block then
-          in_code_block = false
-          api.nvim_buf_set_lines(state.buf, last_line + i, last_line + i, false, { "/copy" })
-        else
-          in_code_block = true
-        end
-      end
-    end
-    -- Scroll to bottom
-    if state.win and api.nvim_win_is_valid(state.win) then
-      local new_last_line = api.nvim_buf_line_count(state.buf)
-      local last_col = #api.nvim_buf_get_lines(state.buf, -2, -1, false)[1]
-      api.nvim_win_set_cursor(state.win, { new_last_line, last_col })
-    end
-  end)
-end
-
-function ChatDialog.clear()
-  if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
-    return
-  end
-  api.nvim_buf_set_option(state.buf, "modifiable", true)
-  api.nvim_buf_set_lines(state.buf, 0, -1, false, { "/you:", "", "" })
-  state.last_saved_file = nil
-  -- Set the cursor to the end of the two newlines after "/you:"
-  if state.win and api.nvim_win_is_valid(state.win) then
-    api.nvim_win_set_cursor(state.win, { 3, 0 })
-  end
-end
-
-function ChatDialog.get_chat_history()
-  if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
-    return ""
-  end
-  local lines = api.nvim_buf_get_lines(state.buf, 0, -1, false)
-  local chat_history = {}
-  local current_entry = nil
-  for _, line in ipairs(lines) do
-    if line:match("^/you:") or line:match("^/assistant:") or line:match("^/system:") then
-      if current_entry then
-        table.insert(chat_history, current_entry)
-      end
-      current_entry = line
-    elseif line:match("^/buf%s+(%d+)") then
-      local bufnr = tonumber(line:match("^/buf%s+(%d+)"))
-      if vim.api.nvim_buf_is_valid(bufnr) then
-        local buf_content = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
-        local buf_name = vim.api.nvim_buf_get_name(bufnr)
-        table.insert(chat_history, line .. "\n" .. buf_name .. "\n```\n" .. buf_content .. "\n```")
-      else
-        table.insert(chat_history, line .. " (Invalid buffer)")
-      end
-    elseif line:match("^/file%s+(.+)") then
-      local file_path = line:match("^/file%s+(.+)")
-      local file_content = get_file_content(file_path)
-      if file_content then
-        table.insert(chat_history, line .. "\n```\n" .. file_content .. "\n```")
-      else
-        table.insert(chat_history, line .. " (File not found or unreadable)")
-      end
-    elseif line:match("^/dir%s+(.+)") then
-      local dir_path = line:match("^/dir%s+(.+)")
-      scan.scan_dir(dir_path, {
-        hidden = true,
-        respect_gitignore = true,
-        only_dirs = false,
-        on_insert = function(file)
-          local relative_path = vim.fn.fnamemodify(file, ":.")
-          table.insert(chat_history, string.format("/file %s", relative_path))
-        end,
-      })
-    elseif current_entry then
-      current_entry = current_entry .. "\n" .. line
-    end
-  end
-  if current_entry then
-    table.insert(chat_history, current_entry)
-  end
-  return table.concat(chat_history, "\n")
 end
 
 function ChatDialog.send()
-  local system_prompt = ChatDialog.get_system_prompt()
-  local chat_history = ChatDialog.get_chat_history()
-  local last_user_request = ChatDialog.last_user_request()
+  local system_prompt = message_handler.get_system_prompt(state)
+  local chat_history = message_handler.get_chat_history(state)
+  local last_user_request = message_handler.last_user_request(state)
   local full_prompt = chat_history .. "\n/you:\n" .. last_user_request
-  ChatDialog.append_text("\n\n/assistant:\n")
-  Assistant.ask(system_prompt, full_prompt, ChatDialog.append_text, ChatDialog.on_complete)
-end
+  -- Check for /model command in the last user request
+  parse_model_command(last_user_request)
 
-function ChatDialog.get_system_prompt()
-  if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
-    return nil
-  end
-  local lines = api.nvim_buf_get_lines(state.buf, 0, -1, false)
-  for _, line in ipairs(lines) do
-    if line:match("^/system%s(.+)") then
-      return line:match("^/system%s(.+)")
-    end
-  end
-  return nil
-end
-
--- Function to get the last user request from the buffer
-function ChatDialog.last_user_request()
-  if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
-    return nil
-  end
-  local lines = api.nvim_buf_get_lines(state.buf, 0, -1, false)
-  local last_request = {}
-  for i = #lines, 1, -1 do
-    local line = lines[i]
-    if line:match("^/you") then
-      -- We've found the start of the last user block
-      break
-    else
-      table.insert(last_request, 1, line)
-    end
-  end
-  if #last_request > 0 then
-    return table.concat(last_request, "\n")
-  else
-    return nil
-  end
-end
-
-function ChatDialog.handle_inline_command(line)
-  local lines = api.nvim_buf_get_lines(state.buf, line, -1, false)
-  local code_block = {}
-  local in_code_block = false
-  for _, l in ipairs(lines) do
-    if l:match("^```") then
-      if in_code_block then
-        break
-      else
-        in_code_block = true
-      end
-    elseif in_code_block then
-      table.insert(code_block, l)
-    end
-  end
-  if #code_block > 0 then
-    local code = table.concat(code_block, "\n")
-    vim.fn.setreg("+", code)
-    print("Code block copied to clipboard")
-  else
-    print("No code block found")
-  end
+  message_handler.append_text(state, "\n\n/assistant:\n")
+  Assistant.ask(system_prompt, full_prompt, function(response)
+    message_handler.append_text(state, response)
+    ChatDialog.on_complete()
+    state.current_model = nil -- Reset the model after the request
+  end, state.current_model) -- Pass the current model to the ask function
 end
 
 function ChatDialog.setup()
@@ -338,9 +182,6 @@ function ChatDialog.setup()
   -- Create user commands
   api.nvim_create_user_command("ChatDialogToggle", ChatDialog.toggle, {})
   api.nvim_create_user_command("ChatDialogClear", ChatDialog.clear, {})
-  api.nvim_create_user_command("CopyCodeBlock", function(opts)
-    ChatDialog.handle_inline_command(opts.line1 - 1)
-  end, { range = true })
 end
 
 return ChatDialog

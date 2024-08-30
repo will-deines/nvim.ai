@@ -4,11 +4,20 @@ local scan = require("plenary.scandir")
 
 -- List of special commands
 local special_commands = {
-  { label = "/system", kind = cmp.lsp.CompletionItemKind.Keyword },
-  { label = "/you", kind = cmp.lsp.CompletionItemKind.Keyword },
   { label = "/buf", kind = cmp.lsp.CompletionItemKind.Keyword },
   { label = "/file", kind = cmp.lsp.CompletionItemKind.Keyword },
   { label = "/dir", kind = cmp.lsp.CompletionItemKind.Keyword },
+  { label = "/model", kind = cmp.lsp.CompletionItemKind.Keyword }, -- Add /model command
+}
+
+-- List of models for autocomplete
+local model_list = {
+  { label = "gpt-4o", kind = cmp.lsp.CompletionItemKind.Value },
+  { label = "gpt-4o-mini", kind = cmp.lsp.CompletionItemKind.Value },
+  { label = "claude-3-5-sonnet-20240620", kind = cmp.lsp.CompletionItemKind.Value },
+  { label = "claude-3-haiku-20240307", kind = cmp.lsp.CompletionItemKind.Value },
+
+  -- Add more models here
 }
 
 source.new = function(get_file_cache)
@@ -18,11 +27,11 @@ source.new = function(get_file_cache)
 end
 
 source.get_trigger_characters = function()
-  return { "/" }
+  return {}
 end
 
 source.get_keyword_pattern = function()
-  return [[\%(/\k*\s*\k*\)]]
+  return [[\%(/dir\s\+\k*\|\%(/file\s\+\k*\|\%(/buf\s*\k*\|\%(/model\s*\k*\)]]
 end
 
 local function optimized_sort(items)
@@ -118,18 +127,11 @@ local function handle_buf_command(callback)
   callback({ items = items, isIncomplete = true })
 end
 
-local function handle_you_command(callback)
-  local items = {
-    { label = "/you", kind = cmp.lsp.CompletionItemKind.Keyword },
-  }
-  optimized_sort(items)
-  callback({ items = items, isIncomplete = true })
-end
-
-local function handle_system_command(callback)
-  local items = {
-    { label = "/system", kind = cmp.lsp.CompletionItemKind.Keyword },
-  }
+local function handle_model_command(callback)
+  local items = {}
+  for _, model in ipairs(model_list) do
+    table.insert(items, model)
+  end
   optimized_sort(items)
   callback({ items = items, isIncomplete = true })
 end
@@ -146,10 +148,7 @@ end
 source.complete = function(self, request, callback)
   local input = string.sub(request.context.cursor_before_line, request.offset)
   print("Completion request input:", input)
-  if input == "/" then
-    -- Show special commands when input is exactly "/"
-    handle_special_commands(callback)
-  elseif input:match("^/buf%s*$") then
+  if input:match("^/buf%s*$") then
     -- Handle /buf command
     handle_buf_command(callback)
   elseif input:match("^/file%s+.*") then
@@ -158,15 +157,12 @@ source.complete = function(self, request, callback)
   elseif input:match("^/dir%s+.*") then
     -- Delegate to handle_dir_command
     handle_dir_command(input, callback)
-  elseif input:match("^/you%s*$") then
-    -- Handle /you command
-    handle_you_command(callback)
-  elseif input:match("^/system%s*$") then
-    -- Handle /system command
-    handle_system_command(callback)
+  elseif input:match("^/model%s+.*") then
+    -- Delegate to handle_model_command
+    handle_model_command(callback)
   else
-    -- Handle other special commands
-    handle_special_commands(callback)
+    -- Do not trigger autocomplete for other inputs
+    callback({ items = {}, isIncomplete = true })
   end
 end
 
