@@ -180,8 +180,12 @@ end
 function ChatDialog.setup()
   ChatDialog.config = vim.tbl_deep_extend("force", ChatDialog.config, config.config.ui or {})
   -- Create user commands
-  api.nvim_create_user_command("ChatDialogToggle", ChatDialog.toggle, {})
-  api.nvim_create_user_command("ChatDialogClear", ChatDialog.clear, {})
+  api.nvim_create_user_command("ChatDialogToggle", function()
+    ChatDialog.toggle()
+  end, {})
+  api.nvim_create_user_command("ChatDialogClear", function()
+    ChatDialog.clear()
+  end, {})
 end
 
 return ChatDialog
