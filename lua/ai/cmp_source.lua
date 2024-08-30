@@ -121,7 +121,7 @@ local function handle_model_command(callback)
   local items = {
     {
       label = "gpt-4o",
-      kind = cmp.lsp.CompletionItemKind.Value,
+      kind = cmp.lsp.CompletionItemKind.Keyword,
       documentation = {
         kind = cmp.lsp.MarkupKind.Markdown,
         value = "Model: gpt-4o",
@@ -129,7 +129,7 @@ local function handle_model_command(callback)
     },
     {
       label = "gpt-4o-mini",
-      kind = cmp.lsp.CompletionItemKind.Value,
+      kind = cmp.lsp.CompletionItemKind.Keyword,
       documentation = {
         kind = cmp.lsp.MarkupKind.Markdown,
         value = "Model: gpt-4o-mini",
@@ -137,7 +137,7 @@ local function handle_model_command(callback)
     },
     {
       label = "claude-3-5-sonnet-20240620",
-      kind = cmp.lsp.CompletionItemKind.Value,
+      kind = cmp.lsp.CompletionItemKind.Keyword,
       documentation = {
         kind = cmp.lsp.MarkupKind.Markdown,
         value = "Model: claude-3-5-sonnet-20240620",
@@ -145,7 +145,7 @@ local function handle_model_command(callback)
     },
     {
       label = "claude-3-haiku-20240307",
-      kind = cmp.lsp.CompletionItemKind.Value,
+      kind = cmp.lsp.CompletionItemKind.Keyword,
       documentation = {
         kind = cmp.lsp.MarkupKind.Markdown,
         value = "Model: claude-3-haiku-20240307",
