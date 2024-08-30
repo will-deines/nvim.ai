@@ -173,8 +173,8 @@ function ChatDialog.send()
   Assistant.ask(system_prompt, full_prompt, function(response)
     message_handler.append_text(state, response)
     ChatDialog.on_complete()
-    state.current_model = nil -- Reset the model after the request
-  end, state.current_model) -- Pass the current model to the ask function
+   -- state.current_model = nil -- Reset the model after the request
+  end--, state.current_model) -- Pass the current model to the ask function
 end
 
 function ChatDialog.clear()
