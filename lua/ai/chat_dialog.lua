@@ -101,38 +101,6 @@ local function find_most_recent_chat_file()
   return files[1] -- Return the most recent file, or nil if no files found
 end
 
-local function set_virtual_text(buf, line, text)
-  api.nvim_buf_set_extmark(buf, api.nvim_create_namespace("chat_dialog"), line, 0, {
-    virt_text = { { text, "Comment" } },
-    virt_text_pos = "eol",
-    hl_mode = "combine",
-  })
-end
-
-local function copy_code_block(buf, line)
-  local lines = api.nvim_buf_get_lines(buf, line, -1, false)
-  local code_block = {}
-  local in_code_block = false
-  for _, l in ipairs(lines) do
-    if l:match("^```") then
-      if in_code_block then
-        break
-      else
-        in_code_block = true
-      end
-    elseif in_code_block then
-      table.insert(code_block, l)
-    end
-  end
-  if #code_block > 0 then
-    local code = table.concat(code_block, "\n")
-    vim.fn.setreg("+", code)
-    print("Code block copied to clipboard")
-  else
-    print("No code block found")
-  end
-end
-
 function ChatDialog.open()
   if state.win and api.nvim_win_is_valid(state.win) then
     api.nvim_set_current_win(state.win)
@@ -211,10 +179,16 @@ function ChatDialog.append_text(text)
     if #new_lines > 1 then
       api.nvim_buf_set_lines(state.buf, -1, -1, false, { unpack(new_lines, 2) })
     end
-    -- Add virtual text for code blocks
+    -- Identify code blocks and insert inline commands
+    local in_code_block = false
     for i, line in ipairs(new_lines) do
       if line:match("^```") then
-        set_virtual_text(state.buf, last_line + i - 1, "Copy Code")
+        if in_code_block then
+          in_code_block = false
+          api.nvim_buf_set_lines(state.buf, last_line + i, last_line + i, false, { "/copy" })
+        else
+          in_code_block = true
+        end
       end
     end
     -- Scroll to bottom
@@ -335,32 +309,38 @@ function ChatDialog.last_user_request()
   end
 end
 
+function ChatDialog.handle_inline_command(line)
+  local lines = api.nvim_buf_get_lines(state.buf, line, -1, false)
+  local code_block = {}
+  local in_code_block = false
+  for _, l in ipairs(lines) do
+    if l:match("^```") then
+      if in_code_block then
+        break
+      else
+        in_code_block = true
+      end
+    elseif in_code_block then
+      table.insert(code_block, l)
+    end
+  end
+  if #code_block > 0 then
+    local code = table.concat(code_block, "\n")
+    vim.fn.setreg("+", code)
+    print("Code block copied to clipboard")
+  else
+    print("No code block found")
+  end
+end
+
 function ChatDialog.setup()
   ChatDialog.config = vim.tbl_deep_extend("force", ChatDialog.config, config.config.ui or {})
   -- Create user commands
   api.nvim_create_user_command("ChatDialogToggle", ChatDialog.toggle, {})
   api.nvim_create_user_command("ChatDialogClear", ChatDialog.clear, {})
-  -- Autocommand to handle virtual text clicks
-  api.nvim_create_autocmd("CursorMoved", {
-    pattern = "*",
-    callback = function()
-      local pos = api.nvim_win_get_cursor(0)
-      local line = pos[1] - 1
-      local col = pos[2]
-      local extmarks = api.nvim_buf_get_extmarks(
-        0,
-        api.nvim_create_namespace("chat_dialog"),
-        { line, 0 },
-        { line, -1 },
-        { details = true }
-      )
-      for _, extmark in ipairs(extmarks) do
-        if extmark[4].virt_text and extmark[4].virt_text[1][1] == "Copy Code" then
-          copy_code_block(0, line)
-        end
-      end
-    end,
-  })
+  api.nvim_create_user_command("CopyCodeBlock", function(opts)
+    ChatDialog.handle_inline_command(opts.line1 - 1)
+  end, { range = true })
 end
 
 return ChatDialog

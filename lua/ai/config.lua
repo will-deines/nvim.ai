@@ -93,6 +93,7 @@ M.defaults = {
     inline_assist = "<leader>i", -- Run InlineAssist command with prompt
     accept_code = "<leader>ia",
     reject_code = "<leader>ij",
+    copy_code_block = "<leader>2", -- Keybind for CopyCodeBlock
   },
 
   -- Behavior
