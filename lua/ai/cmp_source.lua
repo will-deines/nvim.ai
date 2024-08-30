@@ -16,7 +16,6 @@ local model_list = {
   { label = "gpt-4o-mini", kind = cmp.lsp.CompletionItemKind.Value },
   { label = "claude-3-5-sonnet-20240620", kind = cmp.lsp.CompletionItemKind.Value },
   { label = "claude-3-haiku-20240307", kind = cmp.lsp.CompletionItemKind.Value },
-
   -- Add more models here
 }
 
@@ -31,7 +30,7 @@ source.get_trigger_characters = function()
 end
 
 source.get_keyword_pattern = function()
-  return [[/dir\s+\k*|/file\s+\k*|/buf\s*\k*|/model\s*\k*]]
+  return [[/dir\s+\S*|/file\s+\S*|/buf\s+\S*|/model\s+\S*]]
 end
 
 local function optimized_sort(items)
@@ -138,7 +137,7 @@ end
 
 source.complete = function(self, request, callback)
   local input = string.sub(request.context.cursor_before_line, request.offset)
-  print("Completion request input:", input)
+  print("Completion request input:", input) -- Debug print
   if input:match("^/buf%s*$") then
     -- Handle /buf command
     handle_buf_command(callback)
