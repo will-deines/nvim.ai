@@ -15,7 +15,6 @@ end
 M.parse_response = function(data_stream, event, opts)
   print("Received data_stream in anthropic.lua:", vim.inspect(data_stream))
   print("Event type:", event)
-
   if data_stream == nil or data_stream == "" then
     print("Empty data_stream, returning")
     return

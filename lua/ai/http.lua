@@ -8,15 +8,16 @@ M.CANCEL_PATTERN = "NVIMAIHTTPEscape"
 local group = api.nvim_create_augroup("NVIMAIHTTP", { clear = true })
 local active_job = nil
 
-local function parse_stream_data(provider, line, current_event_state, handler_opts)
+local function parse_stream_data(provider, line, handler_opts)
+  local event, data
   if line:match("^event: ") then
-    current_event_state = line:match("^event: (.+)$")
+    event = line:match("^event: (.+)$")
   elseif line:match("^data: ") then
-    local data = line:match("^data: (.+)$")
+    data = line:match("^data: (.+)$")
     local success, json = pcall(vim.json.decode, data)
     if success then
       print("Successfully decoded JSON from data:", vim.inspect(json))
-      P[provider].parse_response(json, current_event_state, handler_opts)
+      P[provider].parse_response(json, event, handler_opts)
     else
       print("Failed to decode JSON from data:", data)
     end
@@ -31,7 +32,6 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
     base_prompt = prompt,
     system_prompt = system_prompt,
   }
-  local current_event_state = nil
   local Provider = P[provider]
   local handler_opts = { on_chunk = on_chunk, on_complete = on_complete }
   local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts, model)
@@ -57,7 +57,7 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
       vim.schedule(function()
         -- Split the data into lines and process each line
         for line in data:gmatch("[^\r\n]+") do
-          parse_stream_data(provider, line, current_event_state, handler_opts)
+          parse_stream_data(provider, line, handler_opts)
         end
       end)
     end,
