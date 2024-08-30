@@ -177,6 +177,12 @@ function ChatDialog.send()
   end, state.current_model) -- Pass the current model to the ask function
 end
 
+function ChatDialog.clear()
+  if state.buf and api.nvim_buf_is_valid(state.buf) then
+    api.nvim_buf_set_lines(state.buf, 0, -1, false, {})
+  end
+end
+
 function ChatDialog.setup()
   ChatDialog.config = vim.tbl_deep_extend("force", ChatDialog.config, config.config.ui or {})
   -- Create user commands
