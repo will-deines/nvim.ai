@@ -150,9 +150,6 @@ source.complete = function(self, request, callback)
   elseif input:match("^/model%s+.*") then
     -- Delegate to handle_model_command
     handle_model_command(callback)
-  else
-    -- Do not trigger autocomplete for other inputs
-    callback({ items = {}, isIncomplete = true })
   end
 end
 
