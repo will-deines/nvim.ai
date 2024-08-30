@@ -30,7 +30,7 @@ source.get_trigger_characters = function()
 end
 
 source.get_keyword_pattern = function()
-  return [[/dir\s+\S*|/file\s+\S*|/buf\s+\S*|/model\s+\S*]]
+  return [[/(dir|file|buf|model)\s+\S*]]
 end
 
 local function optimized_sort(items)
