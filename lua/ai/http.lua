@@ -17,7 +17,6 @@ local function parse_stream_data(provider, line, handler_opts)
     data = line:match("^data: (.+)$")
     local success, json = pcall(vim.json.decode, data)
     if success then
-      print("Successfully decoded JSON from data:", vim.inspect(json))
       P[provider].parse_response(json, handler_opts.current_event, handler_opts)
     else
       print("Failed to decode JSON from data:", data)
