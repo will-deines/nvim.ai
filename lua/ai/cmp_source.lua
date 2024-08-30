@@ -26,11 +26,11 @@ source.new = function(get_file_cache)
 end
 
 source.get_trigger_characters = function()
-  return {}
+  return { "/" }
 end
 
 source.get_keyword_pattern = function()
-  return [[/(dir|file|buf|model)\s+\S*]]
+  return [[/.*]]
 end
 
 local function optimized_sort(items)
@@ -137,7 +137,8 @@ end
 
 source.complete = function(self, request, callback)
   local input = string.sub(request.context.cursor_before_line, request.offset)
-  print("Completion request input:", input) -- Debug print
+  -- print("Completion request input:", input) -- Debug print
+
   if input:match("^/buf%s*$") then
     -- Handle /buf command
     handle_buf_command(callback)
@@ -150,6 +151,9 @@ source.complete = function(self, request, callback)
   elseif input:match("^/model%s+.*") then
     -- Delegate to handle_model_command
     handle_model_command(callback)
+  else
+    -- Do not trigger autocomplete for other inputs
+    callback({ items = {}, isIncomplete = true })
   end
 end
 
