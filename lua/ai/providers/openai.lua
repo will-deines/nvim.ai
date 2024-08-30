@@ -33,27 +33,12 @@ M.parse_response = function(data_stream, event, opts)
     end
     return
   end
-  -- Try to decode the entire data_stream as JSON
-  local success, json = pcall(vim.json.decode, data_stream)
-  if success then
-    print("Successfully decoded JSON:", vim.inspect(json))
-    if json.choices and #json.choices > 0 then
-      local choice = json.choices[1]
-      if choice.delta then
-        opts.on_chunk(choice.delta.content or "")
-      end
-      if choice.finish_reason then
-        opts.on_complete(nil)
-      end
-    end
-    return
-  end
   -- If it's not valid JSON, it might be a stream chunk
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     if line:match("^data: ") then
       local data = line:sub(7) -- Remove "data: " prefix
-      success, json = pcall(vim.json.decode, data)
+      local success, json = pcall(vim.json.decode, data)
       if success then
         print("Successfully decoded JSON from data:", vim.inspect(json))
         if json.choices and #json.choices > 0 then
@@ -97,7 +82,7 @@ M.parse_curl_args = function(provider, code_opts)
     insecure = base.allow_insecure,
     headers = headers,
     body = vim.tbl_deep_extend("force", {
-      model = model or base.model,
+      model = base.model,
       messages = messages,
       stream = true,
     }, body_opts),
