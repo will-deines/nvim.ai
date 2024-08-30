@@ -36,6 +36,8 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
   local Provider = P[provider]
   local handler_opts = { on_chunk = on_chunk, on_complete = on_complete, current_event = nil }
   local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts, model)
+  print("Model passed to Provider.parse_curl_args: " .. (model or "nil")) -- Debug print
+
   if active_job then
     active_job:shutdown()
     active_job = nil

@@ -173,7 +173,7 @@ function ChatDialog.send()
 
   -- Check for /model command in the last user request
   parse_model_command(last_user_request)
-
+  print("Current model after parsing command: " .. (state.current_model or "nil")) -- Debug print
   message_handler.append_text(state, "\n\n/assistant:\n")
   Assistant.ask(system_prompt, full_prompt, function(response)
     message_handler.append_text(state, response)
