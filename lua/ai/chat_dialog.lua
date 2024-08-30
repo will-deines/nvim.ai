@@ -1,3 +1,5 @@
+-- TODO: Okay, so we have model setting.  But now we need to check models against providers and do provider setting
+
 local config = require("ai.config")
 local Assistant = require("ai.assistant")
 local api = vim.api
