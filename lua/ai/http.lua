@@ -11,9 +11,7 @@ local active_job = nil
 local function parse_stream_data(provider, line, current_event_state, handler_opts)
   if line:match("^event: ") then
     current_event_state = line:match("^event: (.+)$")
-    return
-  end
-  if line:match("^data: ") then
+  elseif line:match("^data: ") then
     local data = line:match("^data: (.+)$")
     if data == "[DONE]" then
       handler_opts.on_complete(nil)
@@ -26,10 +24,11 @@ local function parse_stream_data(provider, line, current_event_state, handler_op
         print("Failed to decode JSON from data:", data)
       end
     end
-    return
+  else
+    print("Unhandled line format:", vim.inspect(line))
   end
-  print("Unhandled line format:", vim.inspect(line))
 end
+
 M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
   local provider = Config.config.provider
   local code_opts = {
@@ -88,4 +87,5 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
   })
   return active_job
 end
+
 return M
