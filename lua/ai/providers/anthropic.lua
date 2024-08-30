@@ -15,6 +15,11 @@ end
 M.parse_response = function(data_stream, event, opts)
   print("Received data_stream in anthropic.lua:", vim.inspect(data_stream))
 
+  if type(data_stream) ~= "string" then
+    print("data_stream is not a string, returning")
+    return
+  end
+
   if data_stream == nil or data_stream == "" then
     print("Empty data_stream, returning")
     return
