@@ -12,12 +12,13 @@ local function parse_stream_data(provider, line, handler_opts)
   local event, data
   if line:match("^event: ") then
     event = line:match("^event: (.+)$")
+    handler_opts.current_event = event
   elseif line:match("^data: ") then
     data = line:match("^data: (.+)$")
     local success, json = pcall(vim.json.decode, data)
     if success then
       print("Successfully decoded JSON from data:", vim.inspect(json))
-      P[provider].parse_response(json, event, handler_opts)
+      P[provider].parse_response(json, handler_opts.current_event, handler_opts)
     else
       print("Failed to decode JSON from data:", data)
     end
@@ -33,7 +34,7 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
     system_prompt = system_prompt,
   }
   local Provider = P[provider]
-  local handler_opts = { on_chunk = on_chunk, on_complete = on_complete }
+  local handler_opts = { on_chunk = on_chunk, on_complete = on_complete, current_event = nil }
   local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts, model)
   if active_job then
     active_job:shutdown()
