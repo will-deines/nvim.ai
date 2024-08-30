@@ -13,16 +13,12 @@ local function parse_stream_data(provider, line, current_event_state, handler_op
     current_event_state = line:match("^event: (.+)$")
   elseif line:match("^data: ") then
     local data = line:match("^data: (.+)$")
-    if data == "[DONE]" then
-      handler_opts.on_complete(nil)
+    local success, json = pcall(vim.json.decode, data)
+    if success then
+      print("Successfully decoded JSON from data:", vim.inspect(json))
+      P[provider].parse_response(json, current_event_state, handler_opts)
     else
-      local success, json = pcall(vim.json.decode, data)
-      if success then
-        print("Successfully decoded JSON from data:", vim.inspect(json))
-        P[provider].parse_response(json, current_event_state, handler_opts)
-      else
-        print("Failed to decode JSON from data:", data)
-      end
+      print("Failed to decode JSON from data:", data)
     end
   else
     print("Unhandled line format:", vim.inspect(line))

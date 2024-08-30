@@ -12,16 +12,55 @@ M.parse_message = function(opts)
     { role = "user", content = user_prompt },
   }
 end
-M.parse_response = function(json, event, opts)
-  print("Received JSON in anthropic.lua:", vim.inspect(json))
-  if event == "message_stop" then
+M.parse_response = function(data_stream, event, opts)
+  print("Received data_stream in anthropic.lua:", vim.inspect(data_stream))
+
+  if data_stream == nil or data_stream == "" then
+    print("Empty data_stream, returning")
+    return
+  end
+
+  -- Try to decode the entire data_stream as JSON
+  local success, json = pcall(vim.json.decode, data_stream)
+  if success then
+    print("Successfully decoded JSON:", vim.inspect(json))
+    if json.choices and #json.choices > 0 then
+      local content = json.choices[1].delta and json.choices[1].delta.content or json.choices[1].text or ""
+      opts.on_chunk(content)
+    end
     opts.on_complete(nil)
-  elseif event == "content_block_delta" and json.delta and json.delta.type == "text_delta" then
-    opts.on_chunk(json.delta.text)
-  elseif event == "error" then
-    opts.on_complete(json.error)
-  else
-    print("Unhandled event type:", event)
+    return
+  end
+
+  -- If it's not valid JSON, it might be a stream chunk
+  local lines = vim.split(data_stream, "\n")
+  for _, line in ipairs(lines) do
+    if line:match("^data: ") then
+      local data = line:sub(7) -- Remove "data: " prefix
+      success, json = pcall(vim.json.decode, data)
+      if success then
+        print("Successfully decoded JSON from data:", vim.inspect(json))
+        if event == "message_start" then
+          -- Handle message_start event if needed
+        elseif event == "content_block_start" then
+          -- Handle content_block_start event if needed
+        elseif event == "content_block_delta" and json.delta and json.delta.type == "text_delta" then
+          opts.on_chunk(json.delta.text)
+        elseif event == "content_block_stop" then
+          -- Handle content_block_stop event if needed
+        elseif event == "message_delta" then
+          -- Handle message_delta event if needed
+        elseif event == "message_stop" then
+          opts.on_complete(nil)
+        elseif event == "error" then
+          opts.on_complete(json.error)
+        else
+          print("Unhandled event type:", event)
+        end
+      else
+        print("Failed to decode JSON from data:", data)
+      end
+    end
   end
 end
 M.parse_curl_args = function(provider, code_opts)

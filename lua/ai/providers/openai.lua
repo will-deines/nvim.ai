@@ -34,6 +34,7 @@ M.parse_response = function(data_stream, _, opts)
       local content = json.choices[1].delta and json.choices[1].delta.content or json.choices[1].text or ""
       opts.on_chunk(content)
     end
+    opts.on_complete(nil)
     return
   end
 
