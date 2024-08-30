@@ -7,11 +7,11 @@ local cmp = require("cmp")
 local uv = vim.loop
 local scan = require("plenary.scandir")
 local M = {}
--- Cache for storing file list
-local file_cache = {}
+
 M.setup_keymaps = function()
   -- Global keymaps
   local keymaps = Config.get("keymaps")
+  print(vim.inspect(keymaps)) -- Debug print to inspect the keymaps table
   vim.keymap.set({ "n", "v" }, keymaps.toggle, ChatDialog.toggle, { noremap = true, silent = true })
   vim.keymap.set("n", keymaps.inline_assist, ":NvimAIInlineAssist", { noremap = true, silent = true })
   vim.keymap.set("n", keymaps.accept_code, Assistant.accept_code, { noremap = true, silent = true })
@@ -31,6 +31,9 @@ M.setup_keymaps = function()
   -- automatically setup Avante filetype to markdown
   vim.treesitter.language.register("markdown", Config.FILE_TYPE)
 end
+
+-- Cache for storing file list
+local file_cache = {}
 -- Function to populate the file cache asynchronously
 local function populate_file_cache()
   local cwd = vim.fn.getcwd()
