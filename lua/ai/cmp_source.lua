@@ -119,12 +119,13 @@ end
 
 local function handle_model_command(callback)
   local items = {
-    { label = "gpt-4o" },
-    { label = "gpt-4o-mini" },
-    { label = "claude-3-5-sonnet-20240620" },
-    { label = "claude-3-haiku-20240307" },
+    { label = "gpt-4o", kind = cmp.lsp.CompletionItemKind.Value },
+    { label = "gpt-4o-mini", kind = cmp.lsp.CompletionItemKind.Value },
+    { label = "claude-3-5-sonnet-20240620", kind = cmp.lsp.CompletionItemKind.Value },
+    { label = "claude-3-haiku-20240307", kind = cmp.lsp.CompletionItemKind.Value },
     -- Add more models here
   }
+  optimized_sort(items)
   callback({ items = items, isIncomplete = true })
 end
 
