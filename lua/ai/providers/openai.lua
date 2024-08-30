@@ -27,7 +27,7 @@ M.parse_response = function(data_stream, event, opts)
       if choice.delta then
         opts.on_chunk(choice.delta.content or "")
       end
-      if choice.finish_reason then
+      if choice.finish_reason and choice.finish_reason ~= vim.NIL then
         opts.on_complete(nil)
       end
     end
@@ -46,7 +46,7 @@ M.parse_response = function(data_stream, event, opts)
           if choice.delta then
             opts.on_chunk(choice.delta.content or "")
           end
-          if choice.finish_reason then
+          if choice.finish_reason and choice.finish_reason ~= vim.NIL then
             opts.on_complete(nil)
           end
         end
