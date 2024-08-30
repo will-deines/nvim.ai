@@ -120,7 +120,7 @@ end
 local function handle_model_command(callback)
   local items = {
     {
-      label = "gpt-4o",
+      label = "/model gpt-4o",
       kind = cmp.lsp.CompletionItemKind.Keyword,
       documentation = {
         kind = cmp.lsp.MarkupKind.Markdown,
@@ -128,7 +128,7 @@ local function handle_model_command(callback)
       },
     },
     {
-      label = "gpt-4o-mini",
+      label = "/model gpt-4o-mini",
       kind = cmp.lsp.CompletionItemKind.Keyword,
       documentation = {
         kind = cmp.lsp.MarkupKind.Markdown,
@@ -136,7 +136,7 @@ local function handle_model_command(callback)
       },
     },
     {
-      label = "claude-3-5-sonnet-20240620",
+      label = "/model claude-3-5-sonnet-20240620",
       kind = cmp.lsp.CompletionItemKind.Keyword,
       documentation = {
         kind = cmp.lsp.MarkupKind.Markdown,
@@ -144,7 +144,7 @@ local function handle_model_command(callback)
       },
     },
     {
-      label = "claude-3-haiku-20240307",
+      label = "/model claude-3-haiku-20240307",
       kind = cmp.lsp.CompletionItemKind.Keyword,
       documentation = {
         kind = cmp.lsp.MarkupKind.Markdown,
