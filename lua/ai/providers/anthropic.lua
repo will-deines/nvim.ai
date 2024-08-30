@@ -15,13 +15,30 @@ end
 M.parse_response = function(data_stream, event, opts)
   print("Received data_stream in anthropic.lua:", vim.inspect(data_stream))
 
-  if type(data_stream) ~= "string" then
-    print("data_stream is not a string, returning")
+  if data_stream == nil or data_stream == "" then
+    print("Empty data_stream, returning")
     return
   end
 
-  if data_stream == nil or data_stream == "" then
-    print("Empty data_stream, returning")
+  -- If data_stream is already a table (decoded JSON), handle it directly
+  if type(data_stream) == "table" then
+    if event == "message_start" then
+      -- Handle message_start event if needed
+    elseif event == "content_block_start" then
+      -- Handle content_block_start event if needed
+    elseif event == "content_block_delta" and data_stream.delta and data_stream.delta.type == "text_delta" then
+      opts.on_chunk(data_stream.delta.text)
+    elseif event == "content_block_stop" then
+      -- Handle content_block_stop event if needed
+    elseif event == "message_delta" then
+      -- Handle message_delta event if needed
+    elseif event == "message_stop" then
+      opts.on_complete(nil)
+    elseif event == "error" then
+      opts.on_complete(data_stream.error)
+    else
+      print("Unhandled event type:", event)
+    end
     return
   end
 
