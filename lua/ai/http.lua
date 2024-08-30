@@ -21,9 +21,6 @@ local function safe_json_decode(str)
 end
 
 local function parse_stream_data(provider, line, current_event_state, handler_opts)
-  print("Received line:", vim.inspect(line)) -- Debug print
-
-  -- Handle OpenAI format
   if line:match("^data: ") then
     local data = line:match("^data: (.+)$")
     if data == "[DONE]" then
@@ -33,8 +30,6 @@ local function parse_stream_data(provider, line, current_event_state, handler_op
     end
     return
   end
-
-  -- Handle Anthropic format
   local event, data = line:match("^event:%s*(.-)%s*\ndata:%s*(.+)$")
   if event and data then
     local json_data = safe_json_decode(data)
@@ -45,7 +40,6 @@ local function parse_stream_data(provider, line, current_event_state, handler_op
     end
     return
   end
-
   print("Unhandled line format:", vim.inspect(line))
 end
 

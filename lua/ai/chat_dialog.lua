@@ -166,15 +166,16 @@ function ChatDialog.send()
   local chat_history = message_handler.get_chat_history(state)
   local last_user_request = message_handler.last_user_request(state)
   local full_prompt = chat_history .. "\n/you:\n" .. last_user_request
+
   -- Check for /model command in the last user request
   parse_model_command(last_user_request)
 
   message_handler.append_text(state, "\n\n/assistant:\n")
   Assistant.ask(system_prompt, full_prompt, function(response)
     message_handler.append_text(state, response)
+  end, function()
     ChatDialog.on_complete()
-   -- state.current_model = nil -- Reset the model after the request
-  end--, state.current_model) -- Pass the current model to the ask function
+  end, state.current_model) -- Pass the current model to the ask function
 end
 
 function ChatDialog.clear()

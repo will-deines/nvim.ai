@@ -8,7 +8,7 @@ local M = {}
 
 M.ask = function(system_prompt, raw_prompt, on_chunk, on_complete, model)
   if system_prompt == nil then
-    local system_prompt = Prompts.GLOBAL_SYSTEM_PROMPT
+    system_prompt = Prompts.GLOBAL_SYSTEM_PROMPT
   end
   local provider = Config.config.provider
   local p = Providers.get(provider)

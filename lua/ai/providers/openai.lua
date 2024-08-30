@@ -19,25 +19,9 @@ M.parse_message = function(opts)
 end
 
 M.parse_response = function(data_stream, _, opts)
-  print("Received data_stream in openai.lua:", vim.inspect(data_stream))
-
   if data_stream == nil or data_stream == "" then
-    print("Empty data_stream, returning")
     return
   end
-
-  -- Try to decode the entire data_stream as JSON
-  local success, json = pcall(vim.json.decode, data_stream)
-  if success then
-    print("Successfully decoded JSON:", vim.inspect(json))
-    if json.choices and #json.choices > 0 then
-      local content = json.choices[1].delta and json.choices[1].delta.content or json.choices[1].text or ""
-      opts.on_chunk(content)
-    end
-    return
-  end
-
-  -- If it's not valid JSON, it might be a stream chunk
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     if line:match("^data: ") then
@@ -45,9 +29,8 @@ M.parse_response = function(data_stream, _, opts)
       if data == "[DONE]" then
         opts.on_complete(nil)
       else
-        success, json = pcall(vim.json.decode, data)
+        local success, json = pcall(vim.json.decode, data)
         if success then
-          print("Successfully decoded JSON from data:", vim.inspect(json))
           if json.choices and #json.choices > 0 then
             local content = json.choices[1].delta and json.choices[1].delta.content or json.choices[1].text or ""
             opts.on_chunk(content)
