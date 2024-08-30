@@ -56,7 +56,6 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
       if not data then
         return
       end
-      print("Raw data received in http.lua:", vim.inspect(data)) -- Debug print
       vim.schedule(function()
         -- Split the data into lines and process each line
         for line in data:gmatch("[^\r\n]+") do

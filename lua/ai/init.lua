@@ -14,35 +14,21 @@ M.setup_keymaps = function()
   print(vim.inspect(keymaps)) -- Debug print to inspect the keymaps table
 
   -- Add debug prints before each keymap set
-  print("Setting toggle keymap")
-  print("ChatDialog.toggle:", ChatDialog.toggle)
   vim.keymap.set({ "n", "v" }, keymaps.toggle, ChatDialog.toggle, { noremap = true, silent = true })
 
-  print("Setting inline_assist keymap")
-  print("Assistant.inline:", Assistant.inline)
   vim.keymap.set("n", keymaps.inline_assist, ":NvimAIInlineAssist", { noremap = true, silent = true })
 
-  print("Setting accept_code keymap")
-  print("Assistant.accept_code:", Assistant.accept_code)
   vim.keymap.set("n", keymaps.accept_code, Assistant.accept_code, { noremap = true, silent = true })
 
-  print("Setting reject_code keymap")
-  print("Assistant.reject_code:", Assistant.reject_code)
   vim.keymap.set("n", keymaps.reject_code, Assistant.reject_code, { noremap = true, silent = true })
 
   -- Buffer-specific keymaps for ChatDialog
   local function set_chat_dialog_keymaps()
     local opts = { noremap = true, silent = true, buffer = true }
-    print("Setting close keymap")
-    print("ChatDialog.close:", ChatDialog.close)
     vim.keymap.set("n", keymaps.close, ChatDialog.close, opts)
 
-    print("Setting send keymap")
-    print("ChatDialog.send:", ChatDialog.send)
     vim.keymap.set("n", keymaps.send, ChatDialog.send, opts)
 
-    print("Setting clear keymap")
-    print("ChatDialog.clear:", ChatDialog.clear)
     vim.keymap.set("n", keymaps.clear, ChatDialog.clear, opts)
   end
 

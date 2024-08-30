@@ -14,8 +14,6 @@ M.parse_message = function(opts)
   }
 end
 M.parse_response = function(data_stream, event, opts)
-  print("Received data_stream in openai.lua:", vim.inspect(data_stream))
-  print("Event type:", event)
   if data_stream == nil or data_stream == "" then
     print("Empty data_stream, returning")
     return
@@ -40,7 +38,6 @@ M.parse_response = function(data_stream, event, opts)
       local data = line:sub(7) -- Remove "data: " prefix
       local success, json = pcall(vim.json.decode, data)
       if success then
-        print("Successfully decoded JSON from data:", vim.inspect(json))
         if json.choices and #json.choices > 0 then
           local choice = json.choices[1]
           if choice.delta then

@@ -13,8 +13,6 @@ M.parse_message = function(opts)
   }
 end
 M.parse_response = function(data_stream, event, opts)
-  print("Received data_stream in anthropic.lua:", vim.inspect(data_stream))
-  print("Event type:", event)
   if data_stream == nil or data_stream == "" then
     print("Empty data_stream, returning")
     return
@@ -43,7 +41,6 @@ M.parse_response = function(data_stream, event, opts)
   -- Try to decode the entire data_stream as JSON
   local success, json = pcall(vim.json.decode, data_stream)
   if success then
-    print("Successfully decoded JSON:", vim.inspect(json))
     if json.choices and #json.choices > 0 then
       local content = json.choices[1].delta and json.choices[1].delta.content or json.choices[1].text or ""
       opts.on_chunk(content)
@@ -58,7 +55,6 @@ M.parse_response = function(data_stream, event, opts)
       local data = line:sub(7) -- Remove "data: " prefix
       success, json = pcall(vim.json.decode, data)
       if success then
-        print("Successfully decoded JSON from data:", vim.inspect(json))
         if event == "message_start" then
           -- Handle message_start event if needed
         elseif event == "content_block_start" then
