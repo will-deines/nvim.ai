@@ -10,15 +10,6 @@ local special_commands = {
   { label = "/model", kind = cmp.lsp.CompletionItemKind.Keyword }, -- Add /model command
 }
 
--- List of models for autocomplete
-local model_list = {
-  { label = "gpt-4o", kind = cmp.lsp.CompletionItemKind.Value },
-  { label = "gpt-4o-mini", kind = cmp.lsp.CompletionItemKind.Value },
-  { label = "claude-3-5-sonnet-20240620", kind = cmp.lsp.CompletionItemKind.Value },
-  { label = "claude-3-haiku-20240307", kind = cmp.lsp.CompletionItemKind.Value },
-  -- Add more models here
-}
-
 source.new = function(get_file_cache)
   local self = setmetatable({}, { __index = source })
   self.get_file_cache = get_file_cache
@@ -127,13 +118,13 @@ local function handle_buf_command(callback)
 end
 
 local function handle_model_command(callback)
-  print("Inside handle_model_command") -- Debug print
-  local items = {}
-  for _, model in ipairs(model_list) do
-    print("Adding model:", model.label) -- Debug print
-    table.insert(items, model)
-  end
-  optimized_sort(items)
+  local items = {
+    { label = "gpt-4o" },
+    { label = "gpt-4o-mini" },
+    { label = "claude-3-5-sonnet-20240620" },
+    { label = "claude-3-haiku-20240307" },
+    -- Add more models here
+  }
   callback({ items = items, isIncomplete = true })
 end
 
