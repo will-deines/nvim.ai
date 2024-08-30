@@ -155,9 +155,9 @@ end
 
 local function parse_model_command(line)
   print("parse_model_command called with line:", line) -- Debug print
-  -- Split the line by spaces and consider only the first two parts for the model command
-  local command, model = line:match("^(%S+)%s+(%S+)")
-  if command == "/model" and model then
+  -- Match the /model command and the next non-whitespace blob as the model name
+  local model = line:match("^/model%s+(%S+)")
+  if model then
     state.current_model = model
     print("Model set to: " .. model) -- Debug print
   else
