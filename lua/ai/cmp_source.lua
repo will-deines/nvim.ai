@@ -31,7 +31,7 @@ source.get_trigger_characters = function()
 end
 
 source.get_keyword_pattern = function()
-  return [[\%(/dir\s\+\k*\|\%(/file\s\+\k*\|\%(/buf\s*\k*\|\%(/model\s*\k*\)]]
+  return [[/dir\s+\k*|/file\s+\k*|/buf\s*\k*|/model\s*\k*]]
 end
 
 local function optimized_sort(items)
