@@ -156,14 +156,11 @@ function ChatDialog.on_complete(t)
 end
 
 local function parse_model_command(line)
-  print("parse_model_command called with line:", line) -- Debug print
   -- Match the /model command and the next non-whitespace blob as the model name
   local model = line:match("^/model%s+(%S+)")
   if model then
     state.current_model = model
-    print("Model set to: " .. model) -- Debug print
   else
-    print("No model found in line:", line) -- Debug print
   end
 end
 
@@ -175,7 +172,6 @@ function ChatDialog.send()
 
   -- Check for /model command in the last user request
   parse_model_command(last_user_request)
-  print("Current model after parsing command: " .. (state.current_model or "nil")) -- Debug print
   message_handler.append_text(state, "\n\n/assistant:\n")
   Assistant.ask(system_prompt, full_prompt, function(response)
     message_handler.append_text(state, response)

@@ -11,7 +11,6 @@ local M = {}
 M.setup_keymaps = function()
   -- Global keymaps
   local keymaps = Config.get("keymaps")
-  print(vim.inspect(keymaps)) -- Debug print to inspect the keymaps table
 
   -- Add debug prints before each keymap set
   vim.keymap.set({ "n", "v" }, keymaps.toggle, ChatDialog.toggle, { noremap = true, silent = true })

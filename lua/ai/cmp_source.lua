@@ -154,13 +154,11 @@ local function handle_model_command(callback)
     -- Add more models here
   }
   optimized_sort(items)
-  print("Items to callback:", vim.inspect(items)) -- Debug print
   callback({ items = items, isIncomplete = true })
 end
 
 source.complete = function(self, request, callback)
   local input = string.sub(request.context.cursor_before_line, request.offset)
-  print("Completion request input:", input) -- Debug print
   if input:match("^/buf%s*$") then
     handle_buf_command(callback)
   elseif input:match("^/file%s+.*") then
@@ -168,7 +166,6 @@ source.complete = function(self, request, callback)
   elseif input:match("^/dir%s+.*") then
     handle_dir_command(input, callback)
   elseif input:match("^/model%s+.*") then
-    print("Handling /model command") -- Debug print
     handle_model_command(callback)
   else
     callback({ items = {}, isIncomplete = true })
