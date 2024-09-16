@@ -74,7 +74,6 @@ M.parse_curl_args = function(provider, code_opts)
       temperature = base.temperature or 0.7,
       topP = base.topP or 1.0,
       topK = base.topK or nil, -- Only set if applicable,
-      stream = true,
     },
     contents = {
       {
