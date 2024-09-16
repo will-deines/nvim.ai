@@ -14,53 +14,64 @@ end
 
 -- Handle Gemini's streamed response
 M.parse_response = function(data_stream, event, opts)
-  -- Ensure data_stream is a string
-  if type(data_stream) ~= "string" then
-    Utils.error("Expected data_stream to be a string, got " .. type(data_stream))
+  -- Convert data_stream to string if it's a table
+  if type(data_stream) == "table" then
+    data_stream = table.concat(data_stream)
+  elseif type(data_stream) ~= "string" then
+    Utils.error("Expected data_stream to be a string or table, got " .. type(data_stream))
     return
   end
 
-  -- Split the stream into lines
+  -- Process each line in the data stream
   for line in data_stream:gmatch("[^\r\n]+") do
-    -- Check if the line starts with 'data: '
     if line:sub(1, 6) == "data: " then
       local json_str = line:sub(7) -- Remove 'data: ' prefix
-      -- Decode the JSON string
+      if json_str == "" then
+        -- Empty data, skip
+        goto continue
+      end
       local success, data = pcall(vim.json.decode, json_str)
-      if success and type(data) == "table" then
-        -- Check if there are candidates
+      if success and data then
+        -- Check for error in response
+        if data.error then
+          Utils.error("API Error: " .. data.error.message)
+          opts.on_complete(data.error.message)
+          return
+        end
+        -- Process the candidates
         if data.candidates and #data.candidates > 0 then
-          local candidate = data.candidates[1]
-          if candidate.content and candidate.content.parts then
-            -- Loop through the parts and extract text
-            for _, part in ipairs(candidate.content.parts) do
-              if part.text then
-                opts.on_chunk(part.text)
+          for _, candidate in ipairs(data.candidates) do
+            if candidate.content and candidate.content.parts then
+              for _, part in ipairs(candidate.content.parts) do
+                if part.text then
+                  opts.on_chunk(part.text)
+                end
               end
             end
-          end
-          -- Check if the generation is finished
-          if
-            candidate.finishReason == "STOP"
-            or candidate.finishReason == "FINISH_REASON_UNSPECIFIED"
-            or candidate.finishReason == "MAX_TOKENS"
-            or candidate.finishReason == "SAFETY"
-            or candidate.finishReason == "RECITATION"
-            or candidate.finishReason == "LANGUAGE"
-            or candidate.finishReason == "OTHER"
-            or candidate.finishReason == "BLOCKLIST"
-            or candidate.finishReason == "PROHIBITED_CONTENT"
-            or candidate.finishReason == "SPII"
-            or candidate.finishReason == "MALFORMED_FUNCTION_CALL"
-          then
-            opts.on_complete(nil)
-            return
+            -- Check if this candidate has finished
+            if
+              candidate.finishReason == "STOP"
+              or candidate.finishReason == "FINISH_REASON_UNSPECIFIED"
+              or candidate.finishReason == "MAX_TOKENS"
+              or candidate.finishReason == "SAFETY"
+              or candidate.finishReason == "RECITATION"
+              or candidate.finishReason == "LANGUAGE"
+              or candidate.finishReason == "OTHER"
+              or candidate.finishReason == "BLOCKLIST"
+              or candidate.finishReason == "PROHIBITED_CONTENT"
+              or candidate.finishReason == "SPII"
+              or candidate.finishReason == "MALFORMED_FUNCTION_CALL"
+            then
+              opts.on_complete(nil)
+              return
+            end
           end
         end
       else
         Utils.error("Failed to decode JSON: " .. json_str)
       end
     end
+    ::continue::
   end
 end
 
