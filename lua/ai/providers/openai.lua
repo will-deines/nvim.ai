@@ -60,10 +60,7 @@ M.parse_curl_args = function(provider, code_opts)
     ["Authorization"] = "Bearer " .. os.getenv(M.API_KEY),
   }
   local messages = {
-    {
-      role = "system",
-      content = code_opts.system_prompt or "", -- Ensure it's not null
-    },
+
     {
       role = "user",
       content = code_opts.base_prompt or "", -- Ensure it's not null
