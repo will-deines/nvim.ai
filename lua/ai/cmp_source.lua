@@ -151,6 +151,22 @@ local function handle_model_command(callback)
         value = "Model: claude-3-haiku-20240307",
       },
     },
+    {
+      label = "/model gemini-1.5-flash",
+      kind = cmp.lsp.CompletionItemKind.Keyword,
+      documentation = {
+        kind = cmp.lsp.MarkupKind.Markdown,
+        value = "Model: gemini-1.5-flash",
+      },
+    },
+    {
+      label = "/model gemini-1.5-pro",
+      kind = cmp.lsp.CompletionItemKind.Keyword,
+      documentation = {
+        kind = cmp.lsp.MarkupKind.Markdown,
+        value = "Model: gemini-1.5-pro",
+      },
+    },
     -- Add more models here
   }
   optimized_sort(items)

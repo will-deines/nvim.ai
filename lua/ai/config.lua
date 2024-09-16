@@ -72,6 +72,13 @@ M.defaults = {
     max_tokens = 4096,
     ["local"] = false,
   },
+  gemini = {
+    endpoint = "https://generativelanguage.googleapis.com",
+    model = "gemini-1.5-flash",
+    temperature = 0,
+    max_tokens = 4096,
+    ["local"] = false,
+  },
   ollama = {
     endpoint = "http://localhost:11434",
     model = "gemma2",
