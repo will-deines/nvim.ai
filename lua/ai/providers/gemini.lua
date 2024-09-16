@@ -14,7 +14,6 @@ M.parse_response = function(data_stream, event, opts)
     return
   end
   -- Split the data stream by lines
-  print(data_stream)
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     line = vim.trim(line)
@@ -49,6 +48,9 @@ M.parse_response = function(data_stream, event, opts)
               end
             end
           end
+        else
+          -- Print the final event for debugging purposes
+          print("Final event data:", data)
         end
       else
         print("Failed to decode JSON from data:", data)
