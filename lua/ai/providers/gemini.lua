@@ -89,13 +89,12 @@ function M.parse_curl_args(provider, code_opts)
 
   local body = {
     contents = contents,
+    generationConfig = {},
   }
 
   if code_opts.system_prompt then
     body.systemPrompt = code_opts.system_prompt
   end
-
-  body.generationConfig = {}
 
   if base.temperature then
     body.generationConfig.temperature = base.temperature
@@ -127,8 +126,6 @@ function M.parse_curl_args(provider, code_opts)
   Utils.debug("URL: " .. url, { title = "Gemini Debug" })
   Utils.debug("Headers: " .. vim.inspect(headers), { title = "Gemini Debug" })
   Utils.debug("Body: " .. vim.inspect(body), { title = "Gemini Debug" })
-  Utils.debug("Temperature: " .. tostring(base.temperature), { title = "Gemini Debug" })
-  Utils.debug("MaxOutputTokens: " .. tostring(base.maxOutputTokens), { title = "Gemini Debug" })
 
   return {
     url = url,
@@ -138,4 +135,5 @@ function M.parse_curl_args(provider, code_opts)
     body = vim.tbl_deep_extend("force", body, body_opts),
   }
 end
+
 return M
