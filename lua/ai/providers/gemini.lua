@@ -14,7 +14,6 @@ M.parse_response = function(data_stream, event, opts)
     return
   end
   -- Split the data stream by lines
-  print(data_stream)
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     line = vim.trim(line)
@@ -32,26 +31,10 @@ M.parse_response = function(data_stream, event, opts)
               end
             end
             if candidate.finishReason and candidate.finishReason ~= "FINISH_REASON_UNSPECIFIED" then
-              if
-                candidate.finishReason == "STOP"
-                or candidate.finishReason == "MAX_TOKENS"
-                or candidate.finishReason == "SAFETY"
-                or candidate.finishReason == "RECITATION"
-                or candidate.finishReason == "LANGUAGE"
-                or candidate.finishReason == "OTHER"
-                or candidate.finishReason == "BLOCKLIST"
-                or candidate.finishReason == "PROHIBITED_CONTENT"
-                or candidate.finishReason == "SPII"
-                or candidate.finishReason == "MALFORMED_FUNCTION_CALL"
-              then
-                opts.on_complete(nil)
-                return
-              end
+              opts.on_complete(nil)
+              return
             end
           end
-        else
-          -- Print the final event for debugging purposes
-          print("Final event data:", data)
         end
       else
         print("Failed to decode JSON from data:", data)
