@@ -89,19 +89,14 @@ function M.parse_curl_args(provider, code_opts)
 
   local body = {
     contents = contents,
-    generationConfig = {},
+    generationConfig = {
+      maxOutputTokens = base.maxOutputTokens or 4096,
+      temperature = base.temperature or 0.7,
+    },
   }
 
   if code_opts.system_prompt then
     body.systemPrompt = code_opts.system_prompt
-  end
-
-  if base.temperature then
-    body.generationConfig.temperature = base.temperature
-  end
-
-  if base.maxOutputTokens then
-    body.generationConfig.maxOutputTokens = base.maxOutputTokens
   end
 
   if base.topP then
