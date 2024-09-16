@@ -81,30 +81,38 @@ function M.parse_curl_args(provider, code_opts)
     {
       parts = {
         {
-          text = code_opts.system_prompt .. "\n\n" .. code_opts.base_prompt,
+          text = code_opts.base_prompt,
         },
       },
     },
   }
 
-  local generation_config = {
-    maxOutputTokens = base.maxOutputTokens,
-    temperature = base.temperature,
-  }
-
   local body = {
     contents = contents,
-    generationConfig = generation_config,
   }
 
   if code_opts.system_prompt then
-    body.systemInstruction = {
-      content = {
-        parts = {
-          { text = code_opts.system_prompt },
-        },
-      },
-    }
+    body.systemPrompt = code_opts.system_prompt
+  end
+
+  if base.temperature then
+    body.generationConfig = body.generationConfig or {}
+    body.generationConfig.temperature = base.temperature
+  end
+
+  if base.maxOutputTokens then
+    body.generationConfig = body.generationConfig or {}
+    body.generationConfig.maxOutputTokens = base.maxOutputTokens
+  end
+
+  if base.topP then
+    body.generationConfig = body.generationConfig or {}
+    body.generationConfig.topP = base.topP
+  end
+
+  if base.topK then
+    body.generationConfig = body.generationConfig or {}
+    body.generationConfig.topK = base.topK
   end
 
   Utils.debug("Gemini request body: " .. vim.inspect(body), { title = "Gemini Debug" })
