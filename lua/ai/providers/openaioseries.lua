@@ -81,7 +81,7 @@ M.parse_curl_args = function(provider, code_opts)
     body = vim.tbl_deep_extend("force", {
       model = base.model,
       messages = messages,
-      --  stream = true,
+      stream = false,
     }, body_opts),
   }
 end

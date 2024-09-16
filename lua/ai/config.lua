@@ -75,7 +75,7 @@ M.defaults = {
   openaioseries = {
     endpoint = "https://api.openai.com",
     model = "o1-mini",
-    temperature = 0,
+    temperature = 1,
     max_completion_tokens = 32768,
     ["local"] = false,
   },
