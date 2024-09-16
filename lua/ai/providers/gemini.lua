@@ -87,6 +87,16 @@ function M.parse_curl_args(provider, code_opts)
     },
   }
 
+  local generation_config = {
+    temperature = base.temperature,
+    maxOutputTokens = base.max_tokens,
+  }
+
+  local body = {
+    contents = contents,
+    generationConfig = generation_config,
+  }
+
   return {
     url = Utils.trim(base.endpoint, { suffix = "/" })
       .. "/v1beta/models/"
@@ -96,15 +106,7 @@ function M.parse_curl_args(provider, code_opts)
     proxy = base.proxy,
     insecure = base.allow_insecure,
     headers = headers,
-    body = vim.tbl_deep_extend("force", {
-      contents = contents,
-      generationConfig = {
-        temperature = base.temperature or 0.7,
-        maxOutputTokens = base.max_tokens or 1024,
-        topP = 1,
-        topK = 1,
-      },
-    }, body_opts),
+    body = vim.tbl_deep_extend("force", body, body_opts),
   }
 end
 
