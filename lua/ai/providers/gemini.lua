@@ -59,8 +59,6 @@ M.parse_curl_args = function(provider, code_opts)
 
   local headers = {
     ["Content-Type"] = "application/json",
-    -- Authorization header is not required when using API key in URL
-    -- ["Authorization"] = "Bearer " .. api_key,
   }
 
   -- Construct the request body as per API documentation
@@ -89,10 +87,21 @@ M.parse_curl_args = function(provider, code_opts)
     },
   }
 
-  -- Merge with any additional body options
-  local final_body = vim.tbl_deep_extend("force", request_body, body_opts)
+  -- Filter out fields that should not be at the root level
+  local allowed_body_opts = {}
+  for key, value in pairs(body_opts) do
+    if key ~= "temperature" and key ~= "topP" and key ~= "topK" and key ~= "maxOutputTokens" then
+      allowed_body_opts[key] = value
+    else
+      -- Place these fields inside generationConfig
+      request_body.generationConfig[key] = value
+    end
+  end
 
-  -- Construct the full URL with the model path parameter
+  -- Merge allowed_body_opts into request_body
+  local final_body = vim.tbl_deep_extend("force", request_body, allowed_body_opts)
+
+  -- Construct the URL with the API key
   local model_name = base.model or "gemini-1.5-flash"
   local url = string.format(
     "https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s",
