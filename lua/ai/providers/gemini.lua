@@ -89,21 +89,12 @@ function M.parse_curl_args(provider, code_opts)
 
   local body = {
     contents = contents,
+    generationConfig = {},
   }
 
   if code_opts.system_prompt then
-    body.systemInstruction = {
-      content = {
-        parts = {
-          {
-            text = code_opts.system_prompt,
-          },
-        },
-      },
-    }
+    body.systemPrompt = code_opts.system_prompt
   end
-
-  body.generationConfig = {}
 
   if base.temperature then
     body.generationConfig.temperature = base.temperature
@@ -152,5 +143,4 @@ function M.parse_curl_args(provider, code_opts)
     body = vim.tbl_deep_extend("force", body, body_opts),
   }
 end
-
 return M
