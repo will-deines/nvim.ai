@@ -14,6 +14,8 @@ end
 
 -- Handle Gemini's streamed response
 M.parse_response = function(data_stream, event, opts)
+  -- Add a print statement to show the raw data_stream
+  print("Raw Data Stream:", data_stream)
   if type(data_stream) ~= "string" then
     Utils.error("Expected data_stream to be a string, got " .. type(data_stream))
     return
