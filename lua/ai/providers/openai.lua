@@ -13,33 +13,23 @@ M.parse_message = function(opts)
     { role = "user", content = opts.base_prompt },
   }
 end
-M.parse_response = function(data_stream, event, opts)
-  if data_stream == nil or data_stream == "" then
-    print("Empty data_stream, returning")
+
+M.parse_response = function(data_stream, _, opts)
+  if not data_stream or data_stream == "" then
     return
   end
-  -- If data_stream is already a table (decoded JSON), handle it directly
-  if type(data_stream) == "table" then
-    if data_stream.choices and #data_stream.choices > 0 then
-      local choice = data_stream.choices[1]
-      if choice.delta then
-        opts.on_chunk(choice.delta.content or "")
-      end
-      if choice.finish_reason and choice.finish_reason ~= vim.NIL then
-        opts.on_complete(nil)
-      end
-    end
-    return
-  end
-  -- If it's not valid JSON, it might be a stream chunk
+
+  -- Split the data stream by lines
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     line = vim.trim(line)
-    if line == "data: [DONE]" then
+    if line == "" then
+      -- Skip empty lines
+    elseif line == "data: [DONE]" then
       opts.on_complete(nil)
       return
     elseif vim.startswith(line, "data: ") then
-      local data = line:sub(7)
+      local data = line:sub(7) -- Remove "data: " prefix
       if data ~= "" then
         local success, json = pcall(vim.json.decode, data)
         if success and json.choices and json.choices[1] then
@@ -47,7 +37,25 @@ M.parse_response = function(data_stream, event, opts)
           if choice.delta and choice.delta.content then
             opts.on_chunk(choice.delta.content)
           end
+          if choice.finish_reason ~= vim.NIL and choice.finish_reason ~= nil then
+            opts.on_complete(nil)
+            return
+          end
+        else
+          print("Failed to decode JSON from data:", data)
         end
+      end
+    else
+      -- Handle non-streaming JSON responses
+      local success, json = pcall(vim.json.decode, line)
+      if success and json.choices and json.choices[1] then
+        local content = json.choices[1].message and json.choices[1].message.content
+        if content then
+          opts.on_chunk(content)
+        end
+        opts.on_complete(nil)
+      else
+        print("Failed to decode JSON from data:", line)
       end
     end
   end

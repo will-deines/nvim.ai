@@ -5,52 +5,15 @@ local P = require("ai.providers")
 local M = {}
 
 -- Environment Variable Name for Google API Key
-M.API_KEY_ENV_VAR = "GEMINI_API_KEY"
+M.API_KEY = "GEMINI_API_KEY"
 
 -- Check if Gemini provider is available
 M.has = function()
-  return os.getenv(M.API_KEY_ENV_VAR) ~= nil
+  return os.getenv(M.API_KEY)
 end
 
 -- Handle Gemini's streamed response
-M.parse_response = function(data_stream, event, opts)
-  if type(data_stream) ~= "string" then
-    Utils.error("Expected data_stream to be a string, got " .. type(data_stream))
-    return
-  end
-
-  for line in data_stream:gmatch("[^\r\n]+") do
-    if line:sub(1, 6) == "data: " then
-      local json_str = line:sub(7) -- Remove 'data: ' prefix
-      if json_str == "" then
-        -- Skip empty data
-        goto continue
-      end
-      local success, data = pcall(vim.json.decode, json_str)
-      if success and data then
-        if data.error then
-          Utils.error("API Error: " .. data.error.message)
-          opts.on_complete(data.error.message)
-          return
-        end
-        if data.candidates and #data.candidates > 0 then
-          local candidate = data.candidates[1]
-          if candidate.content and candidate.content.parts then
-            for _, part in ipairs(candidate.content.parts) do
-              if part.text then
-                opts.on_chunk(part.text)
-              end
-            end
-          end
-        end
-        -- Do not call opts.on_complete here
-      else
-        Utils.error("Failed to decode JSON: " .. json_str)
-      end
-    end
-    ::continue::
-  end
-end
+M.parse_response = function(data_stream, event, opts) end
 
 -- Construct the correct API call for Gemini
 M.parse_curl_args = function(provider, code_opts)

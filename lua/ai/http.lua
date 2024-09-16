@@ -46,18 +46,7 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
       return
     end
     vim.schedule(function()
-      if spec.stream then
-        for line in data:gmatch("[^\r\n]+") do
-          parse_stream_data(provider, line, handler_opts)
-        end
-      else
-        local success, json = pcall(vim.json.decode, data)
-        if success then
-          P[provider].parse_response(json, nil, handler_opts)
-        else
-          print("Failed to decode JSON from data:", data)
-        end
-      end
+      P[provider].parse_response(data, handler_opts.current_event, handler_opts)
     end)
   end
 
@@ -66,7 +55,7 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
     proxy = spec.proxy,
     insecure = spec.insecure,
     body = vim.json.encode(spec.body),
-    stream = spec.stream and function(err, data, _)
+    stream = spec.stream and function(err, data)
       if err then
         Utils.debug("Stream error: " .. vim.inspect(err), { title = "NVIM.AI HTTP Error" })
         on_complete(err)
