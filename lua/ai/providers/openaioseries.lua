@@ -9,7 +9,6 @@ end
 M.parse_message = function(opts)
   local user_prompt = opts.base_prompt
   return {
-    -- { role = "system", content = opts.system_prompt },
     { role = "user", content = opts.base_prompt },
   }
 end
@@ -22,8 +21,8 @@ M.parse_response = function(data_stream, event, opts)
   if type(data_stream) == "table" then
     if data_stream.choices and #data_stream.choices > 0 then
       local choice = data_stream.choices[1]
-      if choice.delta then
-        opts.on_chunk(choice.delta.content or "")
+      if choice.message then
+        opts.on_chunk(choice.message.content or "")
       end
       if choice.finish_reason and choice.finish_reason ~= vim.NIL then
         opts.on_complete(nil)
@@ -40,8 +39,8 @@ M.parse_response = function(data_stream, event, opts)
       if success then
         if json.choices and #json.choices > 0 then
           local choice = json.choices[1]
-          if choice.delta then
-            opts.on_chunk(choice.delta.content or "")
+          if choice.message then
+            opts.on_chunk(choice.message.content or "")
           end
           if choice.finish_reason and choice.finish_reason ~= vim.NIL then
             opts.on_complete(nil)
@@ -60,10 +59,6 @@ M.parse_curl_args = function(provider, code_opts)
     ["Authorization"] = "Bearer " .. os.getenv(M.API_KEY),
   }
   local messages = {
-    --  {
-    --    role = "system",
-    --    content = code_opts.system_prompt or "", -- Ensure it's not null
-    --  },
     {
       role = "user",
       content = code_opts.base_prompt or "", -- Ensure it's not null
