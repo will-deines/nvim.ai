@@ -88,8 +88,10 @@ function M.parse_curl_args(provider, code_opts)
   }
 
   local generation_config = {
+    maxOutputTokens = base.maxOutputTokens,
     temperature = base.temperature,
-    maxOutputTokens = base.max_tokens,
+    topP = base.topP,
+    topK = base.topK,
   }
 
   local body = {

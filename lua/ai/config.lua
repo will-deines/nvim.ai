@@ -76,7 +76,7 @@ M.defaults = {
     endpoint = "https://generativelanguage.googleapis.com",
     model = "gemini-1.5-flash",
     temperature = 0,
-    max_tokens = 4096,
+    maxOutputTokens = 4096,
     ["local"] = false,
   },
   ollama = {
