@@ -36,6 +36,14 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
   local handler_opts = { on_chunk = on_chunk, on_complete = on_complete, current_event = nil }
   local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts, model)
 
+  -- Log the entire request
+  Utils.debug("Full request details:", { title = "NVIM.AI HTTP Request" })
+  Utils.debug("URL: " .. spec.url, { title = "NVIM.AI HTTP Request" })
+  Utils.debug("Headers: " .. vim.inspect(spec.headers), { title = "NVIM.AI HTTP Request" })
+  Utils.debug("Body: " .. vim.inspect(spec.body), { title = "NVIM.AI HTTP Request" })
+  Utils.debug("Proxy: " .. tostring(spec.proxy), { title = "NVIM.AI HTTP Request" })
+  Utils.debug("Insecure: " .. tostring(spec.insecure), { title = "NVIM.AI HTTP Request" })
+
   if active_job then
     active_job:shutdown()
     active_job = nil
@@ -47,7 +55,7 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
     body = vim.json.encode(spec.body),
     stream = function(err, data, _)
       if err then
-        print("Stream error:", vim.inspect(err))
+        Utils.debug("Stream error: " .. vim.inspect(err), { title = "NVIM.AI HTTP Error" })
         on_complete(err)
         return
       end
@@ -55,21 +63,20 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
         return
       end
       vim.schedule(function()
-        -- Split the data into lines and process each line
         for line in data:gmatch("[^\r\n]+") do
           parse_stream_data(provider, line, handler_opts)
         end
       end)
     end,
     on_error = function(err)
-      print("http error", vim.inspect(err))
+      Utils.debug("HTTP error: " .. vim.inspect(err), { title = "NVIM.AI HTTP Error" })
       on_complete(err)
     end,
     callback = function(_)
       active_job = nil
     end,
   })
-  api.nvim_create_autocmd("User", {
+  vim.api.nvim_create_autocmd("User", {
     group = group,
     pattern = M.CANCEL_PATTERN,
     callback = function()
