@@ -72,10 +72,17 @@ M.defaults = {
     max_tokens = 4096,
     ["local"] = false,
   },
+  openaioseries = {
+    endpoint = "https://api.openai.com",
+    model = "o1-mini",
+    temperature = 0,
+    max_completion_tokens = 32768,
+    ["local"] = false,
+  },
   gemini = {
     endpoint = "https://generativelanguage.googleapis.com",
     model = "gemini-1.5-flash",
-    temperature = 0,
+    temperature = 0.7,
     maxOutputTokens = 4096,
     ["local"] = false,
   },

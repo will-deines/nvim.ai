@@ -9,7 +9,7 @@ end
 M.parse_message = function(opts)
   local user_prompt = opts.base_prompt
   return {
-    { role = "system", content = opts.system_prompt },
+    -- { role = "system", content = opts.system_prompt },
     { role = "user", content = opts.base_prompt },
   }
 end
@@ -60,10 +60,10 @@ M.parse_curl_args = function(provider, code_opts)
     ["Authorization"] = "Bearer " .. os.getenv(M.API_KEY),
   }
   local messages = {
-    {
-      role = "system",
-      content = code_opts.system_prompt or "", -- Ensure it's not null
-    },
+    --  {
+    --    role = "system",
+    --    content = code_opts.system_prompt or "", -- Ensure it's not null
+    --  },
     {
       role = "user",
       content = code_opts.base_prompt or "", -- Ensure it's not null
@@ -81,7 +81,7 @@ M.parse_curl_args = function(provider, code_opts)
     body = vim.tbl_deep_extend("force", {
       model = base.model,
       messages = messages,
-      stream = true,
+      --  stream = true,
     }, body_opts),
   }
 end
