@@ -31,9 +31,17 @@ M.parse_response = function(data_stream, event, opts)
                 opts.on_chunk(part.text)
               end
             end
-            if candidate.finishReason and candidate.finishReason ~= "FINISH_REASON_UNSPECIFIED" then
-              opts.on_complete(nil)
-              return
+            if
+              candidate.finishReason
+              and candidate.finishReason ~= "FINISH_REASON_UNSPECIFIED"
+              and candidate.safetyRatings
+              and #candidate.safetyRatings > 0
+            then
+              local last_part = candidate.content.parts[#candidate.content.parts]
+              if last_part and last_part.text:match("\n$") then
+                opts.on_complete(nil)
+                return
+              end
             end
           end
         end
