@@ -2,50 +2,52 @@ local Utils = require("ai.utils")
 local Config = require("ai.config")
 local P = require("ai.providers")
 local M = {}
-
 -- Environment Variable Name for Google API Key
 M.API_KEY = "GEMINI_API_KEY"
-
 -- Check if Gemini provider is available
 M.has = function()
   return os.getenv(M.API_KEY)
 end
-
 -- Handle Gemini's streamed response
 M.parse_response = function(data_stream, event, opts)
   if data_stream == nil or data_stream == "" then
     return
   end
-
   -- Split the data stream by lines
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     line = vim.trim(line)
     if line == "" then
       -- Skip empty lines
-    elseif line:match("^event: ") then
-      event = line:match("^event: (.+)$")
-      opts.current_event = event
     elseif line:match("^data: ") then
       local data = line:sub(7) -- Remove "data: " prefix
       local success, json = pcall(vim.json.decode, data)
       if success then
-        if event == "message_start" then
-          -- Handle message_start event if needed
-        elseif event == "content_block_start" then
-          -- Handle content_block_start event if needed
-        elseif event == "content_block_delta" and json.delta and json.delta.type == "text_delta" then
-          opts.on_chunk(json.delta.text)
-        elseif event == "content_block_stop" then
-          -- Handle content_block_stop event if needed
-        elseif event == "message_delta" then
-          -- Handle message_delta event if needed
-        elseif event == "message_stop" then
-          opts.on_complete(nil)
-        elseif event == "error" then
-          opts.on_complete(json.error)
-        else
-          print("Unhandled event type:", event)
+        if json.candidates and #json.candidates > 0 then
+          for _, candidate in ipairs(json.candidates) do
+            if candidate.content and candidate.content.parts then
+              for _, part in ipairs(candidate.content.parts) do
+                opts.on_chunk(part.text)
+              end
+            end
+            if candidate.finishReason and candidate.finishReason ~= "FINISH_REASON_UNSPECIFIED" then
+              if
+                candidate.finishReason == "STOP"
+                or candidate.finishReason == "MAX_TOKENS"
+                or candidate.finishReason == "SAFETY"
+                or candidate.finishReason == "RECITATION"
+                or candidate.finishReason == "LANGUAGE"
+                or candidate.finishReason == "OTHER"
+                or candidate.finishReason == "BLOCKLIST"
+                or candidate.finishReason == "PROHIBITED_CONTENT"
+                or candidate.finishReason == "SPII"
+                or candidate.finishReason == "MALFORMED_FUNCTION_CALL"
+              then
+                opts.on_complete(nil)
+                return
+              end
+            end
+          end
         end
       else
         print("Failed to decode JSON from data:", data)
@@ -53,16 +55,13 @@ M.parse_response = function(data_stream, event, opts)
     end
   end
 end
-
 -- Construct the correct API call for Gemini
 M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
   local api_key = os.getenv(M.API_KEY)
-
   local headers = {
     ["Content-Type"] = "application/json",
   }
-
   -- Construct the request body as per API documentation
   local request_body = {
     contents = {
@@ -88,7 +87,6 @@ M.parse_curl_args = function(provider, code_opts)
       topK = base.topK, -- If applicable
     },
   }
-
   -- Filter out fields that should not be at the root level
   local allowed_body_opts = {}
   for key, value in pairs(body_opts) do
@@ -99,10 +97,8 @@ M.parse_curl_args = function(provider, code_opts)
       request_body.generationConfig[key] = value
     end
   end
-
   -- Merge allowed_body_opts into request_body
   local final_body = vim.tbl_deep_extend("force", request_body, allowed_body_opts)
-
   -- Construct the URL with the API key
   local model_name = base.model or "gemini-1.5-flash"
   local url = string.format(
@@ -110,7 +106,6 @@ M.parse_curl_args = function(provider, code_opts)
     model_name,
     api_key
   )
-
   return {
     url = url,
     proxy = base.proxy,
@@ -120,5 +115,4 @@ M.parse_curl_args = function(provider, code_opts)
     stream = true, -- Enable streaming responses
   }
 end
-
 return M
