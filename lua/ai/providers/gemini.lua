@@ -16,7 +16,7 @@ M.parse_response = function(data_stream, event, opts)
   end
   -- Split the data stream by lines
 
-  local last_chunk_time = socket.gettime()
+  local last_chunk_time = os.time()
   local timeout_seconds = 5 -- Adjust timeout as needed
 
   local lines = vim.split(data_stream, "\n")
