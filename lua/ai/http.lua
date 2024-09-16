@@ -8,24 +8,6 @@ M.CANCEL_PATTERN = "NVIMAIHTTPEscape"
 local group = api.nvim_create_augroup("NVIMAIHTTP", { clear = true })
 local active_job = nil
 
-local function parse_stream_data(provider, line, handler_opts)
-  local event, data
-  if line:match("^event: ") then
-    event = line:match("^event: (.+)$")
-    handler_opts.current_event = event
-  elseif line:match("^data: ") then
-    data = line:match("^data: (.+)$")
-    local success, json = pcall(vim.json.decode, data)
-    if success then
-      P[provider].parse_response(json, handler_opts.current_event, handler_opts)
-    else
-      print("Failed to decode JSON from data:", data)
-    end
-  else
-    print("Unhandled line format:", vim.inspect(line))
-  end
-end
-
 M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
   local provider = Config.config.provider
   local code_opts = {
