@@ -14,35 +14,47 @@ end
 
 -- Handle Gemini's streamed response
 M.parse_response = function(data_stream, event, opts)
-  -- Add a print statement to show the raw data_stream
-  print("Raw Data Stream:", data_stream)
+  -- Ensure data_stream is a string
   if type(data_stream) ~= "string" then
     Utils.error("Expected data_stream to be a string, got " .. type(data_stream))
     return
   end
 
-  -- Split the stream into JSON objects
-  local json_objects = vim.split(data_stream, "\n")
-
-  for _, json_str in ipairs(json_objects) do
-    if json_str ~= "" then
+  -- Split the stream into lines
+  for line in data_stream:gmatch("[^\r\n]+") do
+    -- Check if the line starts with 'data: '
+    if line:sub(1, 6) == "data: " then
+      local json_str = line:sub(7) -- Remove 'data: ' prefix
+      -- Decode the JSON string
       local success, data = pcall(vim.json.decode, json_str)
-      if success then
-        -- Check if the stream has completed
-        if data.done then
-          opts.on_complete(nil)
-          return
-        end
-
-        -- Process the candidates
+      if success and type(data) == "table" then
+        -- Check if there are candidates
         if data.candidates and #data.candidates > 0 then
           local candidate = data.candidates[1]
           if candidate.content and candidate.content.parts then
+            -- Loop through the parts and extract text
             for _, part in ipairs(candidate.content.parts) do
               if part.text then
                 opts.on_chunk(part.text)
               end
             end
+          end
+          -- Check if the generation is finished
+          if
+            candidate.finishReason == "STOP"
+            or candidate.finishReason == "FINISH_REASON_UNSPECIFIED"
+            or candidate.finishReason == "MAX_TOKENS"
+            or candidate.finishReason == "SAFETY"
+            or candidate.finishReason == "RECITATION"
+            or candidate.finishReason == "LANGUAGE"
+            or candidate.finishReason == "OTHER"
+            or candidate.finishReason == "BLOCKLIST"
+            or candidate.finishReason == "PROHIBITED_CONTENT"
+            or candidate.finishReason == "SPII"
+            or candidate.finishReason == "MALFORMED_FUNCTION_CALL"
+          then
+            opts.on_complete(nil)
+            return
           end
         end
       else
