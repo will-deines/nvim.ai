@@ -1,6 +1,7 @@
 local Utils = require("ai.utils")
 local Config = require("ai.config")
 local P = require("ai.providers")
+local socket = require("socket") -- Import socket library for time functions
 local M = {}
 -- Environment Variable Name for Google API Key
 M.API_KEY = "GEMINI_API_KEY"
@@ -15,13 +16,17 @@ M.parse_response = function(data_stream, event, opts)
     return
   end
   -- Split the data stream by lines
+
+  local last_chunk_time = socket.gettime()
+  local timeout_seconds = 5 -- Adjust timeout as needed
+
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     line = vim.trim(line)
     if line == "" then
       -- Skip empty lines
     elseif line:match("^data: ") then
-      local data = line:sub(7) -- Remove "data: " prefix
+      local data = line:sub(7)
       local success, json = pcall(vim.json.decode, data)
       if success then
         if json.candidates and #json.candidates > 0 then
@@ -31,18 +36,9 @@ M.parse_response = function(data_stream, event, opts)
                 opts.on_chunk(part.text)
               end
             end
-            if
-              candidate.finishReason
-              and candidate.finishReason ~= "FINISH_REASON_UNSPECIFIED"
-              and candidate.safetyRatings
-              and #candidate.safetyRatings > 0
-            then
-              local last_part = candidate.content.parts[#candidate.content.parts]
-              if last_part and last_part.text:match("\n$") then
-                opts.on_complete(nil)
-                return
-              end
-            end
+
+            -- Update last_chunk_time for each valid chunk
+            last_chunk_time = socket.gettime()
           end
         end
       else
@@ -52,8 +48,15 @@ M.parse_response = function(data_stream, event, opts)
       -- Handle ping and event lines if needed
       print("Received event:", line)
     end
+
+    -- Check for timeout after processing each line
+    if socket.gettime() - last_chunk_time > timeout_seconds then
+      opts.on_complete(nil) -- Assume stream ended due to timeout
+      return
+    end
   end
 end
+
 -- Construct the correct API call for Gemini
 M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
