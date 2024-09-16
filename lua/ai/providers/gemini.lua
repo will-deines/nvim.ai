@@ -1,9 +1,9 @@
 local Utils = require("ai.utils")
 local Config = require("ai.config")
 local P = require("ai.providers")
-
 local M = {}
 
+-- Environment Variable Name for Gemini API Key
 M.API_KEY_ENV_VAR = "GEMINI_API_KEY"
 
 -- Check if Gemini provider is available
@@ -27,40 +27,35 @@ end
 
 -- Handle Gemini's streamed response
 M.parse_response = function(data_stream, event, opts)
-  if data_stream == nil or data_stream == "" then
+  if type(data_stream) ~= "table" then
+    Utils.error("Expected data_stream to be a table, got " .. type(data_stream))
     return
   end
 
-  -- Handle SSE (Server-Sent Events) stream
-  local lines = vim.split(data_stream, "\n")
-  for _, line in ipairs(lines) do
-    if line:match("^data: ") then
-      local data = line:sub(7) -- Remove "data: " prefix
-      if data == "[DONE]" then
-        opts.on_complete(nil)
-      else
-        local success, json = pcall(vim.json.decode, data)
-        if success and json.candidates and #json.candidates > 0 then
-          local candidate = json.candidates[1]
-          if candidate.content and candidate.content.parts then
-            for _, part in ipairs(candidate.content.parts) do
-              if part.text then
-                opts.on_chunk(part.text)
-              end
-            end
-          end
-        else
-          print("Failed to decode or process Gemini response:", data)
+  -- Check if the stream has completed
+  if data_stream.done then
+    opts.on_complete(nil)
+    return
+  end
+
+  -- Process the candidates
+  if data_stream.candidates and #data_stream.candidates > 0 then
+    local candidate = data_stream.candidates[1]
+    if candidate.content and candidate.content.parts then
+      for _, part in ipairs(candidate.content.parts) do
+        if part.text then
+          opts.on_chunk(part.text)
         end
       end
     end
   end
+
+  -- Optionally handle promptFeedback, usageMetadata if needed
 end
 
 -- Construct the correct API call for Gemini
 M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
-
   local headers = {
     ["Content-Type"] = "application/json",
     ["Authorization"] = "Bearer " .. os.getenv(M.API_KEY_ENV_VAR),
@@ -73,7 +68,7 @@ M.parse_curl_args = function(provider, code_opts)
       maxOutputTokens = base.maxOutputTokens or 4096,
       temperature = base.temperature or 0.7,
       topP = base.topP or 1.0,
-      topK = base.topK or nil, -- Only set if applicable,
+      topK = base.topK, -- Optional: Only set if applicable
     },
     contents = {
       {
@@ -93,7 +88,7 @@ M.parse_curl_args = function(provider, code_opts)
     url = string.format(
       "https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s",
       base.model,
-      vim.fn.getenv("GOOGLE_API_KEY") -- Alternatively, use M.API_KEY_ENV_VAR
+      os.getenv("GOOGLE_API_KEY") -- Ensure this matches your config or environment variable
     ),
     proxy = base.proxy,
     insecure = base.allow_insecure,

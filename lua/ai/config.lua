@@ -81,10 +81,14 @@ M.defaults = {
   },
   gemini = {
     endpoint = "https://generativelanguage.googleapis.com",
-    model = "gemini-1.5-flash",
+    model = "gemini-1.5-flash", -- Update as per your desired Gemini model
     temperature = 0.7,
     maxOutputTokens = 4096,
-    ["local"] = false,
+    topP = 1.0,
+    topK = nil, -- Set to an integer if applicable, otherwise leave nil
+    proxy = nil, -- Set if using a proxy
+    allow_insecure = false, -- Set as needed
+    api_key_name = "GEMINI_API_KEY", -- Ensures consistency with gemini.lua
   },
   ollama = {
     endpoint = "http://localhost:11434",
