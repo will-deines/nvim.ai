@@ -96,7 +96,13 @@ function M.parse_curl_args(provider, code_opts)
   }
 
   if code_opts.system_prompt then
-    body.systemPrompt = code_opts.system_prompt
+    body.systemInstruction = {
+      parts = {
+        {
+          text = code_opts.system_prompt,
+        },
+      },
+    }
   end
 
   if base.topP then
@@ -105,10 +111,6 @@ function M.parse_curl_args(provider, code_opts)
 
   if base.topK then
     body.generationConfig.topK = base.topK
-  end
-
-  if vim.tbl_isempty(body.generationConfig) then
-    body.generationConfig = nil
   end
 
   local url = Utils.trim(base.endpoint, { suffix = "/" })
