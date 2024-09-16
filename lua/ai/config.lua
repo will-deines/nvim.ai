@@ -81,7 +81,7 @@ M.defaults = {
   },
   gemini = {
     endpoint = "https://generativelanguage.googleapis.com",
-    model = "models/gemini-1.5-flash", -- Include 'models/' prefix as per API spec
+    model = "gemini-1.5-flash", -- Include 'models/' prefix as per API spec
     temperature = 0.7,
     maxOutputTokens = 1024,
     topP = 1.0,

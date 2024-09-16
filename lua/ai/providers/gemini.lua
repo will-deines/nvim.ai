@@ -5,7 +5,7 @@ local P = require("ai.providers")
 local M = {}
 
 -- Environment Variable Name for Google API Key
-M.API_KEY_ENV_VAR = "GOOGLE_API_KEY"
+M.API_KEY_ENV_VAR = "GEMINI_API_KEY"
 
 -- Check if Gemini provider is available
 M.has = function()
