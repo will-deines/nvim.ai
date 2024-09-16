@@ -92,7 +92,15 @@ function M.parse_curl_args(provider, code_opts)
   }
 
   if code_opts.system_prompt then
-    body.systemPrompt = code_opts.system_prompt
+    body.systemInstruction = {
+      content = {
+        parts = {
+          {
+            text = code_opts.system_prompt,
+          },
+        },
+      },
+    }
   end
 
   body.generationConfig = {}
@@ -123,12 +131,18 @@ function M.parse_curl_args(provider, code_opts)
     .. ":streamGenerateContent?alt=sse&key="
     .. os.getenv(M.API_KEY)
 
-  Utils.debug("Gemini full request:", { title = "Gemini Debug" })
-  Utils.debug("URL: " .. url, { title = "Gemini Debug" })
-  Utils.debug("Headers: " .. vim.inspect(headers), { title = "Gemini Debug" })
-  Utils.debug("Body: " .. vim.inspect(body), { title = "Gemini Debug" })
-  Utils.debug("Temperature: " .. tostring(base.temperature), { title = "Gemini Debug" })
-  Utils.debug("MaxOutputTokens: " .. tostring(base.maxOutputTokens), { title = "Gemini Debug" })
+  -- Comprehensive debug statement
+  Utils.debug("Gemini API Request", {
+    title = "Gemini Debug",
+    url = url,
+    headers = vim.inspect(headers),
+    body = vim.inspect(body),
+    provider = vim.inspect(provider),
+    code_opts = vim.inspect(code_opts),
+    base = vim.inspect(base),
+    body_opts = vim.inspect(body_opts),
+    api_key = os.getenv(M.API_KEY) and "Set" or "Not Set",
+  })
 
   return {
     url = url,
@@ -138,4 +152,5 @@ function M.parse_curl_args(provider, code_opts)
     body = vim.tbl_deep_extend("force", body, body_opts),
   }
 end
+
 return M
