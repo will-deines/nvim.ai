@@ -14,6 +14,7 @@ M.parse_response = function(data_stream, event, opts)
     return
   end
   -- Split the data stream by lines
+  print(data_stream)
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     line = vim.trim(line)
