@@ -10,6 +10,7 @@ M.has = function()
 end
 -- Handle Gemini's streamed response
 M.parse_response = function(data_stream, event, opts)
+  print(data_stream)
   if data_stream == nil or data_stream == "" then
     return
   end
@@ -39,9 +40,9 @@ M.parse_response = function(data_stream, event, opts)
       else
         print("Failed to decode JSON from data:", data)
       end
-    elseif line:match("^ping: ") or line:match("^event: ") then
+    else
       -- Handle ping and event lines if needed
-      print("Received ping/event:", line)
+      print("Received event:", line)
     end
   end
 end
