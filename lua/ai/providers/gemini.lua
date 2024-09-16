@@ -39,6 +39,9 @@ M.parse_response = function(data_stream, event, opts)
       else
         print("Failed to decode JSON from data:", data)
       end
+    elseif line:match("^ping: ") or line:match("^event: ") then
+      -- Handle ping and event lines if needed
+      print("Received ping/event:", line)
     end
   end
 end
