@@ -1,7 +1,6 @@
 local Utils = require("ai.utils")
 local Config = require("ai.config")
 local P = require("ai.providers")
-local socket = require("socket") -- Import socket library for time functions
 local M = {}
 -- Environment Variable Name for Google API Key
 M.API_KEY = "GEMINI_API_KEY"
@@ -38,7 +37,7 @@ M.parse_response = function(data_stream, event, opts)
             end
 
             -- Update last_chunk_time for each valid chunk
-            last_chunk_time = socket.gettime()
+            last_chunk_time = os.time()
           end
         end
       else
@@ -50,7 +49,7 @@ M.parse_response = function(data_stream, event, opts)
     end
 
     -- Check for timeout after processing each line
-    if socket.gettime() - last_chunk_time > timeout_seconds then
+    if os.time() - last_chunk_time > timeout_seconds then
       opts.on_complete(nil) -- Assume stream ended due to timeout
       return
     end
