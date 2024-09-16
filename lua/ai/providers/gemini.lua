@@ -90,14 +90,24 @@ function M.parse_curl_args(provider, code_opts)
   local generation_config = {
     maxOutputTokens = base.maxOutputTokens,
     temperature = base.temperature,
-    topP = base.topP,
-    topK = base.topK,
   }
 
   local body = {
     contents = contents,
     generationConfig = generation_config,
   }
+
+  if code_opts.system_prompt then
+    body.systemInstruction = {
+      content = {
+        parts = {
+          { text = code_opts.system_prompt },
+        },
+      },
+    }
+  end
+
+  Utils.debug("Gemini request body: " .. vim.inspect(body), { title = "Gemini Debug" })
 
   return {
     url = Utils.trim(base.endpoint, { suffix = "/" })
