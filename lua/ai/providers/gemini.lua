@@ -1,99 +1,110 @@
 local Utils = require("ai.utils")
 local Config = require("ai.config")
 local P = require("ai.providers")
+
 local M = {}
 
--- Environment Variable Name for Gemini API Key
-M.API_KEY_ENV_VAR = "GEMINI_API_KEY"
+-- Environment Variable Name for Google API Key
+M.API_KEY_ENV_VAR = "GOOGLE_API_KEY"
 
 -- Check if Gemini provider is available
 M.has = function()
   return os.getenv(M.API_KEY_ENV_VAR) ~= nil
 end
 
--- Parse the content into Gemini's expected `contents` structure
-M.parse_message = function(opts)
-  local user_prompt = opts.base_prompt
-  return {
-    {
-      parts = {
-        {
-          text = user_prompt,
-        },
-      },
-    },
-  }
-end
-
 -- Handle Gemini's streamed response
 M.parse_response = function(data_stream, event, opts)
-  if type(data_stream) ~= "table" then
-    Utils.error("Expected data_stream to be a table, got " .. type(data_stream))
+  if type(data_stream) ~= "string" then
+    Utils.error("Expected data_stream to be a string, got " .. type(data_stream))
     return
   end
 
-  -- Check if the stream has completed
-  if data_stream.done then
-    opts.on_complete(nil)
-    return
-  end
+  -- Split the stream into JSON objects
+  local json_objects = vim.split(data_stream, "\n")
 
-  -- Process the candidates
-  if data_stream.candidates and #data_stream.candidates > 0 then
-    local candidate = data_stream.candidates[1]
-    if candidate.content and candidate.content.parts then
-      for _, part in ipairs(candidate.content.parts) do
-        if part.text then
-          opts.on_chunk(part.text)
+  for _, json_str in ipairs(json_objects) do
+    if json_str ~= "" then
+      local success, data = pcall(vim.json.decode, json_str)
+      if success then
+        -- Check if the stream has completed
+        if data.done then
+          opts.on_complete(nil)
+          return
         end
+
+        -- Process the candidates
+        if data.candidates and #data.candidates > 0 then
+          local candidate = data.candidates[1]
+          if candidate.content and candidate.content.parts then
+            for _, part in ipairs(candidate.content.parts) do
+              if part.text then
+                opts.on_chunk(part.text)
+              end
+            end
+          end
+        end
+      else
+        Utils.error("Failed to decode JSON: " .. json_str)
       end
     end
   end
-
-  -- Optionally handle promptFeedback, usageMetadata if needed
 end
 
 -- Construct the correct API call for Gemini
 M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
+  local api_key = os.getenv(M.API_KEY_ENV_VAR)
+
   local headers = {
     ["Content-Type"] = "application/json",
-    ["Authorization"] = "Bearer " .. os.getenv(M.API_KEY_ENV_VAR),
+    -- Authorization header is not required when using API key in URL
+    -- ["Authorization"] = "Bearer " .. api_key,
   }
 
-  -- Construct the request body as per Gemini's API
+  -- Construct the request body as per API documentation
   local request_body = {
-    model = base.model, -- e.g., "gemini-1.5-flash"
-    generationConfig = {
-      maxOutputTokens = base.maxOutputTokens or 4096,
-      temperature = base.temperature or 0.7,
-      topP = base.topP or 1.0,
-      topK = base.topK, -- Optional: Only set if applicable
-    },
     contents = {
       {
         parts = {
           {
-            text = code_opts.base_prompt,
+            text = code_opts.base_prompt, -- User's prompt text
           },
         },
       },
+    },
+    systemInstruction = {
+      parts = {
+        {
+          text = code_opts.system_prompt or "", -- System instructions if any
+        },
+      },
+    },
+    generationConfig = {
+      maxOutputTokens = base.maxOutputTokens or 1024,
+      temperature = base.temperature or 0.7,
+      topP = base.topP or 1.0,
+      topK = base.topK, -- If applicable
     },
   }
 
   -- Merge with any additional body options
   local final_body = vim.tbl_deep_extend("force", request_body, body_opts)
 
+  -- Construct the full URL with the model path parameter
+  local model_name = base.model or "gemini-1.5-flash"
+  local url = string.format(
+    "https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s",
+    model_name,
+    api_key
+  )
+
   return {
-    url = string.format(
-      "https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s",
-      base.model,
-      os.getenv("GOOGLE_API_KEY") -- Ensure this matches your config or environment variable
-    ),
+    url = url,
     proxy = base.proxy,
     insecure = base.allow_insecure,
     headers = headers,
-    body = vim.json.encode(final_body),
+    body = final_body,
+    stream = true, -- Enable streaming responses
   }
 end
 
