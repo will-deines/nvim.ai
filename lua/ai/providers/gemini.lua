@@ -95,39 +95,47 @@ function M.parse_curl_args(provider, code_opts)
     body.systemPrompt = code_opts.system_prompt
   end
 
+  body.generationConfig = {}
+
   if base.temperature then
-    body.generationConfig = body.generationConfig or {}
     body.generationConfig.temperature = base.temperature
   end
 
   if base.maxOutputTokens then
-    body.generationConfig = body.generationConfig or {}
     body.generationConfig.maxOutputTokens = base.maxOutputTokens
   end
 
   if base.topP then
-    body.generationConfig = body.generationConfig or {}
     body.generationConfig.topP = base.topP
   end
 
   if base.topK then
-    body.generationConfig = body.generationConfig or {}
     body.generationConfig.topK = base.topK
   end
 
-  Utils.debug("Gemini request body: " .. vim.inspect(body), { title = "Gemini Debug" })
+  if vim.tbl_isempty(body.generationConfig) then
+    body.generationConfig = nil
+  end
+
+  local url = Utils.trim(base.endpoint, { suffix = "/" })
+    .. "/v1beta/models/"
+    .. base.model
+    .. ":streamGenerateContent?alt=sse&key="
+    .. os.getenv(M.API_KEY)
+
+  Utils.debug("Gemini full request:", { title = "Gemini Debug" })
+  Utils.debug("URL: " .. url, { title = "Gemini Debug" })
+  Utils.debug("Headers: " .. vim.inspect(headers), { title = "Gemini Debug" })
+  Utils.debug("Body: " .. vim.inspect(body), { title = "Gemini Debug" })
+  Utils.debug("Temperature: " .. tostring(base.temperature), { title = "Gemini Debug" })
+  Utils.debug("MaxOutputTokens: " .. tostring(base.maxOutputTokens), { title = "Gemini Debug" })
 
   return {
-    url = Utils.trim(base.endpoint, { suffix = "/" })
-      .. "/v1beta/models/"
-      .. base.model
-      .. ":streamGenerateContent?alt=sse&key="
-      .. os.getenv(M.API_KEY),
+    url = url,
     proxy = base.proxy,
     insecure = base.allow_insecure,
     headers = headers,
     body = vim.tbl_deep_extend("force", body, body_opts),
   }
 end
-
 return M
