@@ -48,34 +48,52 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
     active_job:shutdown()
     active_job = nil
   end
+
+  local function handle_response(data)
+    if not data then
+      return
+    end
+    vim.schedule(function()
+      if spec.stream then
+        for line in data:gmatch("[^\r\n]+") do
+          parse_stream_data(provider, line, handler_opts)
+        end
+      else
+        local success, json = pcall(vim.json.decode, data)
+        if success then
+          P[provider].parse_response(json, nil, handler_opts)
+        else
+          print("Failed to decode JSON from data:", data)
+        end
+      end
+    end)
+  end
+
   active_job = curl.post(spec.url, {
     headers = spec.headers,
     proxy = spec.proxy,
     insecure = spec.insecure,
     body = vim.json.encode(spec.body),
-    stream = function(err, data, _)
+    stream = spec.stream and function(err, data, _)
       if err then
         Utils.debug("Stream error: " .. vim.inspect(err), { title = "NVIM.AI HTTP Error" })
         on_complete(err)
         return
       end
-      if not data then
-        return
-      end
-      vim.schedule(function()
-        for line in data:gmatch("[^\r\n]+") do
-          parse_stream_data(provider, line, handler_opts)
-        end
-      end)
-    end,
+      handle_response(data)
+    end or nil,
     on_error = function(err)
       Utils.debug("HTTP error: " .. vim.inspect(err), { title = "NVIM.AI HTTP Error" })
       on_complete(err)
     end,
-    callback = function(_)
+    callback = function(response)
+      if not spec.stream then
+        handle_response(response.body)
+      end
       active_job = nil
     end,
   })
+
   vim.api.nvim_create_autocmd("User", {
     group = group,
     pattern = M.CANCEL_PATTERN,
