@@ -76,6 +76,12 @@ M.parse_curl_args = function(provider, code_opts)
     body = vim.tbl_deep_extend("force", {
       model = base.model,
       messages = messages,
+      -- Fixed parameters for o1-models
+      temperature = 1,
+      top_p = 1,
+      n = 1,
+      presence_penalty = 0,
+      frequency_penalty = 0,
       stream = false,
     }, body_opts),
   }
