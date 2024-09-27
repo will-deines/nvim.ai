@@ -6,52 +6,63 @@ M.API_KEY = "OPENAI_API_KEY"
 M.has = function()
   return os.getenv(M.API_KEY) and true or false
 end
+
 M.parse_message = function(opts)
   local user_prompt = opts.base_prompt
   return {
     { role = "user", content = opts.base_prompt },
   }
 end
-M.parse_response = function(data_stream, event, opts)
-  if data_stream == nil or data_stream == "" then
-    print("Empty data_stream, returning")
+
+M.parse_response = function(data_stream, _, opts)
+  if not data_stream or data_stream == "" then
     return
   end
-  -- If data_stream is already a table (decoded JSON), handle it directly
-  if type(data_stream) == "table" then
-    if data_stream.choices and #data_stream.choices > 0 then
-      local choice = data_stream.choices[1]
-      if choice.message then
-        opts.on_chunk(choice.message.content or "")
-      end
-      if choice.finish_reason and choice.finish_reason ~= vim.NIL then
-        opts.on_complete(nil)
-      end
-    end
-    return
-  end
-  -- If it's not valid JSON, it might be a stream chunk
+
+  -- Split the data stream by lines
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
-    if line:match("^data: ") then
+    line = vim.trim(line)
+    -- Log everything that comes back
+    print("Received line:", line)
+    if line == "" then
+      -- Skip empty lines
+    elseif line == "data: [DONE]" then
+      opts.on_complete(nil)
+      return
+    elseif vim.startswith(line, "data: ") then
       local data = line:sub(7) -- Remove "data: " prefix
-      local success, json = pcall(vim.json.decode, data)
-      if success then
-        if json.choices and #json.choices > 0 then
+      if data ~= "" then
+        local success, json = pcall(vim.json.decode, data)
+        if success and json.choices and json.choices[1] then
           local choice = json.choices[1]
-          if choice.message then
-            opts.on_chunk(choice.message.content or "")
+          if choice.delta and choice.delta.content then
+            opts.on_chunk(choice.delta.content)
           end
-          if choice.finish_reason and choice.finish_reason ~= vim.NIL then
+          if choice.finish_reason ~= vim.NIL and choice.finish_reason ~= nil then
             opts.on_complete(nil)
+            return
           end
+        else
+          print("Failed to decode JSON from data:", data)
         end
+      end
+    else
+      -- Handle non-streaming JSON responses
+      local success, json = pcall(vim.json.decode, line)
+      if success and json.choices and json.choices[1] then
+        local content = json.choices[1].message and json.choices[1].message.content
+        if content then
+          opts.on_chunk(content)
+        end
+        opts.on_complete(nil)
       else
-        print("Failed to decode JSON from data:", data)
+        print("Failed to decode JSON from data:", line)
       end
     end
   end
 end
+
 M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
   local headers = {
