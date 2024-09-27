@@ -23,6 +23,8 @@ M.parse_response = function(data_stream, _, opts)
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     line = vim.trim(line)
+    -- Log everything that comes back
+    print("Received line:", line)
     if line == "" then
       -- Skip empty lines
     elseif line == "data: [DONE]" then
