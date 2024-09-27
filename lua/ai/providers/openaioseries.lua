@@ -20,6 +20,7 @@ M.parse_response = function(data_stream, event, opts)
     return
   end
   print(type(data_stream))
+  print(data_stream)
 
   local success, json = pcall(vim.json.decode, data_stream)
   if success then
