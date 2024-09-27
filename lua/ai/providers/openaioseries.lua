@@ -6,30 +6,25 @@ M.API_KEY = "OPENAI_API_KEY"
 M.has = function()
   return os.getenv(M.API_KEY) and true or false
 end
-
 M.parse_message = function(opts)
   local user_prompt = opts.base_prompt
   return {
     { role = "user", content = opts.base_prompt },
   }
 end
-
 M.parse_response = function(data_stream, event, opts)
   if data_stream == nil or data_stream == "" then
     print("Empty data_stream, returning")
     return
   end
-  print(type(data_stream))
-  print(data_stream)
-
   local success, json = pcall(vim.json.decode, data_stream)
   if success then
     if json.choices and #json.choices > 0 then
-      local choice = json.choices[0]
-      if choice.message then
+      local choice = json.choices[1] -- Always take the first choice (index 0)
+      if choice and choice.message then
         opts.on_chunk(choice.message.content or "")
       end
-      if choice.finish_reason and choice.finish_reason ~= vim.NIL then
+      if choice and choice.finish_reason and choice.finish_reason ~= vim.NIL then
         opts.on_complete(nil)
       end
     end
@@ -40,7 +35,6 @@ M.parse_response = function(data_stream, event, opts)
     print("Failed to decode JSON from data:", data_stream)
   end
 end
-
 M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
   local headers = {
