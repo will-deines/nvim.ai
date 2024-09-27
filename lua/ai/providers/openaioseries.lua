@@ -35,6 +35,7 @@ M.parse_response = function(data_stream, event, opts)
   -- If it's not valid JSON, it might be a stream chunk
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
+    print(line)
     if line:match("^data: ") then
       local data = line:sub(7) -- Remove "data: " prefix
       local success, json = pcall(vim.json.decode, data)
