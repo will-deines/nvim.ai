@@ -20,42 +20,26 @@ M.parse_response = function(data_stream, event, opts)
     return
   end
   print(type(data_stream))
-  -- If data_stream is already a table (decoded JSON), handle it directly
-  if type(data_stream) == "table" then
-    if data_stream.choices and #data_stream.choices > 0 then
-      local choice = data_stream.choices[1]
-      if choice.message then
-        opts.on_chunk(choice.message.content or "")
-      end
-      if choice.finish_reason and choice.finish_reason ~= vim.NIL then
-        opts.on_complete(nil)
-      end
-    end
-    return
-  end
-  -- If it's not valid JSON, it might be a stream chunk
   local lines = vim.split(data_stream, "\n")
   for _, line in ipairs(lines) do
     print(line)
-    if line:match("^data: ") then
-      local data = line:sub(7) -- Remove "data: " prefix
-      local success, json = pcall(vim.json.decode, data)
-      if success then
-        if json.choices and #json.choices > 0 then
-          local choice = json.choices[0]
-          if choice.message then
-            opts.on_chunk(choice.message.content or "")
-          end
-          if choice.finish_reason and choice.finish_reason ~= vim.NIL then
-            opts.on_complete(nil)
-          end
+
+    local success, json = pcall(vim.json.decode, line)
+    if success then
+      if json.choices and #json.choices > 0 then
+        local choice = json.choices[0]
+        if choice.message then
+          opts.on_chunk(choice.message.content or "")
         end
-        if json.usage then
-          print("Usage:", vim.inspect(json.usage))
+        if choice.finish_reason and choice.finish_reason ~= vim.NIL then
+          opts.on_complete(nil)
         end
-      else
-        print("Failed to decode JSON from data:", data)
       end
+      if json.usage then
+        print("Usage:", vim.inspect(json.usage))
+      end
+    else
+      print("Failed to decode JSON from data:", line)
     end
   end
 end
