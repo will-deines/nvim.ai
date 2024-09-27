@@ -20,27 +20,23 @@ M.parse_response = function(data_stream, event, opts)
     return
   end
   print(type(data_stream))
-  local lines = vim.split(data_stream, "\n")
-  for _, line in ipairs(lines) do
-    print(line)
 
-    local success, json = pcall(vim.json.decode, line)
-    if success then
-      if json.choices and #json.choices > 0 then
-        local choice = json.choices[0]
-        if choice.message then
-          opts.on_chunk(choice.message.content or "")
-        end
-        if choice.finish_reason and choice.finish_reason ~= vim.NIL then
-          opts.on_complete(nil)
-        end
+  local success, json = pcall(vim.json.decode, data_stream)
+  if success then
+    if json.choices and #json.choices > 0 then
+      local choice = json.choices[0]
+      if choice.message then
+        opts.on_chunk(choice.message.content or "")
       end
-      if json.usage then
-        print("Usage:", vim.inspect(json.usage))
+      if choice.finish_reason and choice.finish_reason ~= vim.NIL then
+        opts.on_complete(nil)
       end
-    else
-      print("Failed to decode JSON from data:", line)
     end
+    if json.usage then
+      print("Usage:", vim.inspect(json.usage))
+    end
+  else
+    print("Failed to decode JSON from data:", data_stream)
   end
 end
 
