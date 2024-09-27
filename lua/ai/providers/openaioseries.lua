@@ -19,6 +19,7 @@ M.parse_response = function(data_stream, event, opts)
     print("Empty data_stream, returning")
     return
   end
+  print(type(data_stream))
   -- If data_stream is already a table (decoded JSON), handle it directly
   if type(data_stream) == "table" then
     if data_stream.choices and #data_stream.choices > 0 then
@@ -41,13 +42,16 @@ M.parse_response = function(data_stream, event, opts)
       local success, json = pcall(vim.json.decode, data)
       if success then
         if json.choices and #json.choices > 0 then
-          local choice = json.choices[1]
+          local choice = json.choices[0]
           if choice.message then
             opts.on_chunk(choice.message.content or "")
           end
           if choice.finish_reason and choice.finish_reason ~= vim.NIL then
             opts.on_complete(nil)
           end
+        end
+        if json.usage then
+          print("Usage:", vim.inspect(json.usage))
         end
       else
         print("Failed to decode JSON from data:", data)
