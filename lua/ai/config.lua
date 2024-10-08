@@ -87,6 +87,19 @@ M.defaults = {
     topP = 1.0,
     topK = nil, -- Set if applicable
   },
+  kobold = {
+    endpoint = "http://localhost:5001",
+    max_context_length = 131072,
+    max_length = 131072,
+    temperature = 0.1,
+    top_p = 0.9,
+    top_k = 100,
+    rep_pen = 1.1,
+    rep_pen_range = 256,
+    rep_pen_slope = 1,
+    ["local"] = true,
+  },
+
   ollama = {
     endpoint = "http://localhost:11434",
     model = "gemma2",
