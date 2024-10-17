@@ -130,7 +130,7 @@ function ChatDialog.open()
   -- Focus on the chat dialog window
   api.nvim_set_current_win(state.win)
   -- Automatically enter insert mode
-  vim.cmd("startinsert")
+  -- vim.cmd("startinsert")
 end
 
 function ChatDialog.close()

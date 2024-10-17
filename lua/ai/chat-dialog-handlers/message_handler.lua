@@ -39,7 +39,7 @@ function M.append_text(state, text)
       if line:match("^```") then
         if in_code_block then
           in_code_block = false
-          api.nvim_buf_set_lines(state.buf, last_line + i, last_line + i, false, { "/copy" })
+          --api.nvim_buf_set_lines(state.buf, last_line + i, last_line + i, false, { "/copy" })
         else
           in_code_block = true
         end
