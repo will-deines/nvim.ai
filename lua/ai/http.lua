@@ -11,13 +11,13 @@ local active_job = nil
 M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
   local provider = Config.config.provider
   local code_opts = {
-    base_prompt = prompt,
     system_prompt = system_prompt,
+    document = prompt.document,
+    chat_history = prompt.chat_history,
   }
   local Provider = P[provider]
   local handler_opts = { on_chunk = on_chunk, on_complete = on_complete, current_event = nil }
   local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts, model)
-
   if active_job then
     active_job:shutdown()
     active_job = nil

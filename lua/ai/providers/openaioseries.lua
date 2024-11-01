@@ -1,5 +1,4 @@
 local Utils = require("ai.utils")
-local Config = require("ai.config")
 local P = require("ai.providers")
 local M = {}
 M.API_KEY = "OPENAI_API_KEY"
@@ -35,22 +34,37 @@ M.parse_response = function(data_stream, event, opts)
     print("Failed to decode JSON from data:", data_stream)
   end
 end
+
 M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
   local headers = {
     ["Content-Type"] = "application/json",
     ["Authorization"] = "Bearer " .. os.getenv(M.API_KEY),
   }
-  local messages = {
-    {
-      role = "user",
-      content = code_opts.base_prompt or "", -- Ensure it's not null
-    },
-  }
-  -- Filter out any messages with null content
+
+  -- Begin constructing the messages array
+  local messages = {}
+
+  -- Include the system prompt if available
+  if code_opts.system_prompt ~= nil then
+    table.insert(messages, { role = "system", content = code_opts.system_prompt })
+  end
+
+  -- Include the document content as a system message or assistant message
+  if code_opts.document ~= nil and code_opts.document ~= "" then
+    table.insert(messages, { role = "system", content = code_opts.document })
+  end
+
+  -- Append the chat history messages
+  for _, msg in ipairs(code_opts.chat_history) do
+    table.insert(messages, { role = msg.role, content = msg.content })
+  end
+
+  -- Filter out any messages with null or empty content
   messages = vim.tbl_filter(function(msg)
     return msg.content ~= nil and msg.content ~= ""
   end, messages)
+
   return {
     url = Utils.trim(base.endpoint, { suffix = "/" }) .. "/v1/chat/completions",
     proxy = base.proxy,
@@ -59,14 +73,14 @@ M.parse_curl_args = function(provider, code_opts)
     body = vim.tbl_deep_extend("force", {
       model = base.model,
       messages = messages,
-      -- Fixed parameters for o1-models
-      temperature = 1,
-      top_p = 1,
-      n = 1,
-      presence_penalty = 0,
-      frequency_penalty = 0,
+      temperature = base.temperature,
+      top_p = base.top_p,
+      n = base.n,
+      presence_penalty = base.presence_penalty,
+      frequency_penalty = base.frequency_penalty,
       stream = false,
     }, body_opts),
   }
 end
+
 return M

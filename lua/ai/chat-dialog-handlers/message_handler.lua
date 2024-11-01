@@ -39,7 +39,6 @@ function M.append_text(state, text)
       if line:match("^```") then
         if in_code_block then
           in_code_block = false
-          --api.nvim_buf_set_lines(state.buf, last_line + i, last_line + i, false, { "/copy" })
         else
           in_code_block = true
         end
@@ -62,7 +61,7 @@ function M.get_chat_history(state)
   local chat_history = {}
   local current_entry = nil
   for _, line in ipairs(lines) do
-    if line:match("^/you:") or line:match("^/assistant:") or line:match("^/system:") then
+    if line:match("^/user:") or line:match("^/assistant:") or line:match("^/system:") then
       if current_entry then
         table.insert(chat_history, current_entry)
       end
@@ -128,7 +127,7 @@ function M.last_user_request(state)
   local last_request = {}
   for i = #lines, 1, -1 do
     local line = lines[i]
-    if line:match("^/you") then
+    if line:match("^/user") then
       -- We've found the start of the last user block
       break
     else
@@ -139,30 +138,6 @@ function M.last_user_request(state)
     return table.concat(last_request, "\n")
   else
     return nil
-  end
-end
-
-function M.handle_inline_command(state, line)
-  local lines = api.nvim_buf_get_lines(state.buf, line, -1, false)
-  local code_block = {}
-  local in_code_block = false
-  for _, l in ipairs(lines) do
-    if l:match("^```") then
-      if in_code_block then
-        break
-      else
-        in_code_block = true
-      end
-    elseif in_code_block then
-      table.insert(code_block, l)
-    end
-  end
-  if #code_block > 0 then
-    local code = table.concat(code_block, "\n")
-    vim.fn.setreg("+", code)
-    print("Code block copied to clipboard")
-  else
-    print("No code block found")
   end
 end
 

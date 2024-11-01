@@ -4,7 +4,6 @@ local config = require("ai.config")
 local Assistant = require("ai.assistant")
 local api = vim.api
 local message_handler = require("ai.chat-dialog-handlers.message_handler")
-local code_block_navigator = require("ai.chat-dialog-handlers.code_block_navigator")
 
 local ChatDialog = {}
 ChatDialog.config = {
@@ -120,11 +119,11 @@ function ChatDialog.open()
   api.nvim_win_set_option(state.win, "wrap", true)
   api.nvim_win_set_option(state.win, "linebreak", true) -- Wrap at word boundaries
   api.nvim_win_set_option(state.win, "cursorline", true)
-  -- Check if the buffer is empty and add "/you:" followed by two line breaks if it is
+  -- Check if the buffer is empty and add "/user:" followed by two line breaks if it is
   local lines = api.nvim_buf_get_lines(state.buf, 0, -1, false)
   if #lines == 0 or (#lines == 1 and lines[1] == "") then
-    api.nvim_buf_set_lines(state.buf, 0, -1, false, { "/you:", "", "" })
-    -- Set the cursor to the end of the two newlines after "/you:"
+    api.nvim_buf_set_lines(state.buf, 0, -1, false, { "/user:", "", "" })
+    -- Set the cursor to the end of the two newlines after "/user:"
     api.nvim_win_set_cursor(state.win, { 3, 0 })
   end
   -- Focus on the chat dialog window
@@ -149,7 +148,7 @@ function ChatDialog.toggle()
 end
 
 function ChatDialog.on_complete(t)
-  message_handler.append_text(state, "\n\n/you:\n")
+  message_handler.append_text(state, "\n\n/user:\n")
   vim.schedule(function()
     ChatDialog.save_file()
   end)
@@ -168,7 +167,7 @@ function ChatDialog.send()
   local system_prompt = message_handler.get_system_prompt(state)
   local chat_history = message_handler.get_chat_history(state)
   local last_user_request = message_handler.last_user_request(state)
-  local full_prompt = chat_history .. "\n/you:\n" .. last_user_request
+  local full_prompt = chat_history .. "\n/user:\n" .. last_user_request
 
   -- Check for /model command in the last user request
   parse_model_command(last_user_request)
@@ -182,8 +181,8 @@ end
 
 function ChatDialog.clear()
   if state.buf and api.nvim_buf_is_valid(state.buf) then
-    api.nvim_buf_set_lines(state.buf, 0, -1, false, { "/you:", "", "" })
-    -- Set the cursor to the end of the two newlines after "/you:"
+    api.nvim_buf_set_lines(state.buf, 0, -1, false, { "/user:", "", "" })
+    -- Set the cursor to the end of the two newlines after "/user:"
     if state.win and api.nvim_win_is_valid(state.win) then
       api.nvim_win_set_cursor(state.win, { 3, 0 })
     end

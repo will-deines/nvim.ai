@@ -26,7 +26,8 @@ You must:
 - Avoid line numbers in code blocks.
 - Avoid wrapping the whole response in triple backticks.
 - Only return relevant code.
+- Process document content wrapped in <document> XML tags, extracting the filepath, filename, and filetype for context.
 ]]
-M.CONTENT_PROMPT = ContentPrompt.PROMP
+M.CONTENT_PROMPT = ContentPrompt.PROMPT
 
 return M

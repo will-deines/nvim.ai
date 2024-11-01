@@ -4,7 +4,6 @@ local ChatDialog = require("ai.chat_dialog")
 local Providers = require("ai.providers")
 local CmpSource = require("ai.cmp_source")
 local cmp = require("cmp")
-local uv = vim.loop
 local scan = require("plenary.scandir")
 local M = {}
 
@@ -14,12 +13,6 @@ M.setup_keymaps = function()
 
   -- Add debug prints before each keymap set
   vim.keymap.set({ "n", "v" }, keymaps.toggle, ChatDialog.toggle, { noremap = true, silent = true })
-
-  vim.keymap.set("n", keymaps.inline_assist, ":NvimAIInlineAssist", { noremap = true, silent = true })
-
-  vim.keymap.set("n", keymaps.accept_code, Assistant.accept_code, { noremap = true, silent = true })
-
-  vim.keymap.set("n", keymaps.reject_code, Assistant.reject_code, { noremap = true, silent = true })
 
   -- Buffer-specific keymaps for ChatDialog
   local function set_chat_dialog_keymaps()
@@ -41,38 +34,6 @@ M.setup_keymaps = function()
   vim.treesitter.language.register("markdown", Config.FILE_TYPE)
 end
 
--- Function to set keymaps for code block navigator
-local function setup_code_block_navigator_keymaps()
-  local function navigate_code_blocks(code_blocks)
-    local current_index = 1
-    local function move_to_next_block()
-      if current_index > #code_blocks then
-        current_index = 1
-      end
-      local block = code_blocks[current_index]
-      vim.api.nvim_win_set_cursor(0, { block.start, 0 })
-      current_index = current_index + 1
-    end
-    print("Setting keymap for 'n' key")
-    vim.api.nvim_set_keymap("n", "n", ":lua move_to_next_block()<CR>", { noremap = true, silent = true })
-  end
-
-  local function yank_and_exit()
-    vim.api.nvim_command("normal! V")
-    vim.api.nvim_command("normal! y")
-    vim.api.nvim_command("normal! :noh<CR>")
-    vim.api.nvim_del_keymap("n", "n")
-  end
-
-  print("Setting keymap for '<leader>cb' key")
-  vim.api.nvim_set_keymap(
-    "n",
-    "<leader>cb",
-    ':lua require("ai.code_block_navigator").identify_and_navigate_code_blocks()<CR>',
-    { noremap = true, silent = true }
-  )
-end
-
 -- Setup function to initialize the plugin
 M.setup = function(opts)
   Config.setup(opts)
@@ -87,7 +48,6 @@ M.setup = function(opts)
     vim.api.nvim_create_user_command(cmd.cmd, cmd.callback, cmd.opts)
   end
   M.setup_keymaps()
-  setup_code_block_navigator_keymaps()
 end
 
 -- Cache for storing file list

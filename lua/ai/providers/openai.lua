@@ -69,20 +69,30 @@ M.parse_curl_args = function(provider, code_opts)
     ["Content-Type"] = "application/json",
     ["Authorization"] = "Bearer " .. os.getenv(M.API_KEY),
   }
-  local messages = {
-    {
-      role = "system",
-      content = code_opts.system_prompt or "", -- Ensure it's not null
-    },
-    {
-      role = "user",
-      content = code_opts.base_prompt or "", -- Ensure it's not null
-    },
-  }
-  -- Filter out any messages with null content
+
+  -- Begin constructing the messages array
+  local messages = {}
+
+  -- Include the system prompt if available
+  if code_opts.system_prompt ~= nil then
+    table.insert(messages, { role = "system", content = code_opts.system_prompt })
+  end
+
+  -- Include the document content as a system message or assistant message
+  if code_opts.document ~= nil and code_opts.document ~= "" then
+    table.insert(messages, { role = "system", content = code_opts.document })
+  end
+
+  -- Append the chat history messages
+  for _, msg in ipairs(code_opts.chat_history) do
+    table.insert(messages, { role = msg.role, content = msg.content })
+  end
+
+  -- Filter out any messages with null or empty content
   messages = vim.tbl_filter(function(msg)
     return msg.content ~= nil and msg.content ~= ""
   end, messages)
+
   return {
     url = Utils.trim(base.endpoint, { suffix = "/" }) .. "/v1/chat/completions",
     proxy = base.proxy,
