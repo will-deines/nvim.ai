@@ -7,9 +7,10 @@ local M = {}
 M.CANCEL_PATTERN = "NVIMAIHTTPEscape"
 local group = api.nvim_create_augroup("NVIMAIHTTP", { clear = true })
 local active_job = nil
+local utils = require("ai.utils")
 
-M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
-  local provider = Config.config.provider
+M.stream = function(system_prompt, prompt, on_chunk, on_complete)
+  local provider = utils.state.selectedProvider
   local code_opts = {
     system_prompt = system_prompt,
     document = prompt.document,
@@ -17,19 +18,26 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
   }
   local Provider = P[provider]
   local handler_opts = { on_chunk = on_chunk, on_complete = on_complete, current_event = nil }
-  local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts, model)
+  local spec = Provider.parse_curl_args(Config.get_provider(provider), code_opts)
+
   if active_job then
     active_job:shutdown()
     active_job = nil
   end
 
+  local response_data = {}
+
   local function handle_response(data)
     if not data then
       return
     end
-    vim.schedule(function()
-      P[provider].parse_response(data, handler_opts.current_event, handler_opts)
-    end)
+    if spec.stream then
+      vim.schedule(function()
+        P[provider].parse_response(data, true, handler_opts)
+      end)
+    else
+      table.insert(response_data, data)
+    end
   end
 
   active_job = curl.post(spec.url, {
@@ -52,6 +60,11 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
     callback = function(response)
       if not spec.stream then
         handle_response(response.body)
+        local complete_json = table.concat(response_data)
+        vim.schedule(function()
+          -- Pass the complete JSON string and the stream flag to parse_response
+          P[provider].parse_response(complete_json, false, handler_opts)
+        end)
       end
       active_job = nil
     end,
@@ -68,6 +81,7 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete, model)
       end
     end,
   })
+
   return active_job
 end
 

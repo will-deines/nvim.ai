@@ -1,6 +1,7 @@
 local M = {}
 
-M.BASE_PROVIDER_KEYS = { "endpoint", "model", "local", "deployment", "api_version", "proxy", "allow_insecure" }
+M.BASE_PROVIDER_KEYS =
+  { "endpoint", "models", "local", "deployment", "api_version", "proxy", "allow_insecure", "max_tokens", "stream" }
 M.FILE_TYPE = "chat-dialog"
 
 -- Add this near the top of the file, after the local M = {} line
@@ -36,56 +37,71 @@ M.defaults = {
   },
 
   -- LLM configuration
-  provider = "ollama",
+  provider = "openai",
+  model = "gpt-4o",
   deepseek = {
     endpoint = "https://api.deepseek.com",
-    model = "deepseek-chat", -- or command-r
+    models = { "deepseek-chat" },
     temperature = 0,
     max_tokens = 4096,
     ["local"] = false,
   },
   cohere = {
     endpoint = "https://api.cohere.com",
-    model = "command-r-plus", -- or command-r
+    models = { "command-r-plus", "command-r" },
     temperature = 0,
     max_tokens = 4096,
     ["local"] = false,
   },
   groq = {
     endpoint = "https://api.groq.com",
-    model = "llama-3.1-70b-versatile", -- or llama3.1-7b-instant, llama3.1:405b, gemma2-9b-it
+    models = { "llama-3.1-70b-versatile" },
     temperature = 0,
     max_tokens = 4096,
     ["local"] = false,
   },
   anthropic = {
     endpoint = "https://api.anthropic.com",
-    model = "claude-3-5-sonnet-20240620",
+    models = { "claude-3-5-sonnet-latest", "claude-3-5-haiku-latest" },
     temperature = 0,
-    max_tokens = 4096,
+    max_tokens = {
+      ["claude-3-5-sonnet-latest"] = 8192,
+      ["claude-3-5-haiku-latest"] = 8192,
+    },
+    stream = false,
     ["local"] = false,
   },
   openai = {
     endpoint = "https://api.openai.com",
-    model = "gpt-4o",
+    models = { "gpt-4o", "gpt-4o-mini" },
     temperature = 0,
-    max_tokens = 4096,
+    max_tokens = {
+      ["gpt-4o"] = 4096,
+      ["gpt-4o-mini"] = 4096,
+    },
+    stream = false,
     ["local"] = false,
   },
   openaioseries = {
     endpoint = "https://api.openai.com",
-    model = "o1-mini",
+    models = { "o1-mini", "o1-preview" },
     temperature = 1,
-    max_completion_tokens = 32768,
+    max_tokens = {
+      ["o1-mini"] = 65500,
+      ["o1-preview"] = 32768,
+    },
+    stream = false,
     ["local"] = false,
   },
   gemini = {
     endpoint = "https://generativelanguage.googleapis.com",
-    model = "gemini-1.5-flash", -- Include 'models/' prefix as per API spec
+    models = { "gemini-1.5-flash-latest", "gemini-1.5-pro-latest" },
     temperature = 0.7,
     maxOutputTokens = 1024,
     topP = 1.0,
     topK = nil, -- Set if applicable
+    stream = true,
+    ["local"] = false,
   },
   kobold = {
     endpoint = "http://localhost:5001",
@@ -114,14 +130,11 @@ M.defaults = {
 
   -- Keymaps
   keymaps = {
-    toggle = "<leader>c", -- Toggle chat dialog
+    toggle = "<leader>1", -- Toggle chat dialog
+    select_model = "<leader>2", -- Change the provider & model
     send = "<CR>", -- Send message in normal mode
     close = "q", -- Close chat dialog
     clear = "<C-l>", -- Clear chat history
-    inline_assist = "<leader>i", -- Run InlineAssist command with prompt
-    accept_code = "<leader>ia",
-    reject_code = "<leader>ij",
-    navigate_code_blocks = "<leader>2", -- Keybind for navigating code blocks
   },
 
   -- Behavior

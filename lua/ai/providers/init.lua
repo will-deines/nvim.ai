@@ -36,8 +36,7 @@ E._once = false
 --- intialize the environment variable for current neovim session.
 --- This will only run once and spawn a UI for users to input the envvar.
 ---@private
-E.setup = function(opts)
-end
+E.setup = function(opts) end
 
 ---@param provider Provider
 E.is_local = function(provider)
@@ -64,7 +63,8 @@ function M.refresh(provider)
   require("avante.config").override({ provider = provider })
 end
 
-local default_providers = { "openai", "claude", "azure", "deepseek", "groq", "gemini", "copilot" }
+M.default_providers =
+  { "openai", "claude", "azure", "deepseek", "groq", "gemini", "copilot", "openaioseries", "anthropic" }
 
 ---@private
 M.commands = function()
@@ -103,7 +103,7 @@ M.parse_config = function(opts)
   end
 
   return s1,
-      vim
+    vim
       .iter(s2)
       :filter(function(k, v)
         return type(v) ~= "function"
@@ -118,6 +118,15 @@ end
 ---@param provider Provider
 M.get = function(provider)
   local cur = Config.get_provider(provider or Config.config.provider)
+  local default_model = Config.defaults.model
+  local available_models = cur.models
+
+  if not vim.tbl_contains(available_models, default_model) then
+    error("Model from the config is not an allowed model. Defaulting to first available model.")
+    default_model = available_models[1]
+  end
+
+  cur.model = default_model
   return type(cur) == "function" and cur() or cur
 end
 

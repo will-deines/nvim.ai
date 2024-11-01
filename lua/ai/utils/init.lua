@@ -2,6 +2,15 @@ local api = vim.api
 
 local M = {}
 
+M.state = {
+  buf = nil,
+  win = nil,
+  last_saved_file = nil,
+  current_model = nil,
+  selectedProvider = nil,
+  selectedModel = nil,
+}
+
 setmetatable(M, {
   __index = function(t, k)
     local ok, lazyutil = pcall(require, "lazy.core.util")

@@ -5,33 +5,61 @@ M.API_KEY = "OPENAI_API_KEY"
 M.has = function()
   return os.getenv(M.API_KEY) and true or false
 end
+
 M.parse_message = function(opts)
   local user_prompt = opts.base_prompt
   return {
     { role = "user", content = opts.base_prompt },
   }
 end
-M.parse_response = function(data_stream, event, opts)
-  if data_stream == nil or data_stream == "" then
-    print("Empty data_stream, returning")
+
+M.parse_response = function(data_stream, stream, opts)
+  if not data_stream or data_stream == "" then
     return
   end
-  local success, json = pcall(vim.json.decode, data_stream)
-  if success then
-    if json.choices and #json.choices > 0 then
-      local choice = json.choices[1] -- Always take the first choice (index 0)
-      if choice and choice.message then
-        opts.on_chunk(choice.message.content or "")
-      end
-      if choice and choice.finish_reason and choice.finish_reason ~= vim.NIL then
+
+  if stream then
+    -- Handle streaming data
+    local lines = vim.split(data_stream, "\n")
+    for _, line in ipairs(lines) do
+      line = vim.trim(line)
+      print("Received line:", line)
+      if line == "" then
+        -- Skip empty lines
+      elseif line == "data: [DONE]" then
         opts.on_complete(nil)
+        return
+      elseif vim.startswith(line, "data: ") then
+        local data = line:sub(7) -- Remove "data: " prefix
+        if data ~= "" then
+          local success, json = pcall(vim.json.decode, data)
+          if success and json.choices and json.choices[1] then
+            local choice = json.choices[1]
+            if choice.delta and choice.delta.content then
+              opts.on_chunk(choice.delta.content)
+            end
+            if choice.finish_reason ~= vim.NIL and choice.finish_reason ~= nil then
+              opts.on_complete(nil)
+              return
+            end
+          else
+            print("Failed to decode JSON from data:", data)
+          end
+        end
       end
-    end
-    if json.usage then
-      print("Usage:", vim.inspect(json.usage))
     end
   else
-    print("Failed to decode JSON from data:", data_stream)
+    -- Handle non-streaming data
+    local success, json = pcall(vim.json.decode, data_stream)
+    if success and json.choices and json.choices[1] then
+      local content = json.choices[1].message and json.choices[1].message.content
+      if content then
+        opts.on_chunk(content)
+      end
+      opts.on_complete(nil)
+    else
+      print("Failed to decode JSON from data:", data_stream)
+    end
   end
 end
 
@@ -45,14 +73,14 @@ M.parse_curl_args = function(provider, code_opts)
   -- Begin constructing the messages array
   local messages = {}
 
-  -- Include the system prompt if available
+  -- Include the system prompt if available.  O-series doesn't allow a system prompt, so they're all user.
   if code_opts.system_prompt ~= nil then
-    table.insert(messages, { role = "system", content = code_opts.system_prompt })
+    table.insert(messages, { role = "user", content = code_opts.system_prompt })
   end
 
   -- Include the document content as a system message or assistant message
   if code_opts.document ~= nil and code_opts.document ~= "" then
-    table.insert(messages, { role = "system", content = code_opts.document })
+    table.insert(messages, { role = "user", content = code_opts.document })
   end
 
   -- Append the chat history messages
@@ -71,7 +99,8 @@ M.parse_curl_args = function(provider, code_opts)
     insecure = base.allow_insecure,
     headers = headers,
     body = vim.tbl_deep_extend("force", {
-      model = base.model,
+      model = Utils.state.current_model,
+      max_completion_tokens = base.max_tokens[Utils.state.current_model],
       messages = messages,
       temperature = base.temperature,
       top_p = base.top_p,

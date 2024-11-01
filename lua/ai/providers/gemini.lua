@@ -101,7 +101,7 @@ M.parse_curl_args = function(provider, code_opts)
   -- Merge allowed_body_opts into request_body
   local final_body = vim.tbl_deep_extend("force", request_body, allowed_body_opts)
   -- Construct the URL with the API key
-  local model_name = base.model or "gemini-1.5-flash"
+  local model_name = base.model or "gemini-1.5-flash-latest"
   local url = string.format(
     "https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse&key=%s",
     model_name,
@@ -113,7 +113,7 @@ M.parse_curl_args = function(provider, code_opts)
     insecure = base.allow_insecure,
     headers = headers,
     body = final_body,
-    stream = true, -- Enable streaming responses
+    stream = base.stream, -- Enable streaming responses
   }
 end
 return M

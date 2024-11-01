@@ -1,4 +1,3 @@
-local Prompts = require("ai.assistant.prompts")
 local scan = require("plenary.scandir")
 local path = require("plenary.path")
 
