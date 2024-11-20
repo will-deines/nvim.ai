@@ -104,7 +104,7 @@ local function generate_chat_filename()
   return filename
 end
 
-function ChatDialog.save_file()
+function ChatDialog.save_file(skip_rename)
   if not (utils.state.buf and api.nvim_buf_is_valid(utils.state.buf)) then
     print("No valid chat buffer to save.")
     return
@@ -119,8 +119,10 @@ function ChatDialog.save_file()
     file:write(content)
     file:close()
     print("Chat saved to: " .. filename)
-    -- Set the buffer name to the saved file path
-    api.nvim_buf_set_name(utils.state.buf, filename)
+    -- Only set buffer name if not skipping rename
+    if not skip_rename then
+      api.nvim_buf_set_name(utils.state.buf, filename)
+    end
     -- Update the last saved file
     utils.state.last_saved_file = filename
   else
@@ -264,6 +266,9 @@ function ChatDialog.save_and_create_new()
     api.nvim_buf_set_lines(utils.state.buf, 0, -1, false, { "/user:", "", "" })
     api.nvim_win_set_cursor(utils.state.win, { 3, 0 })
   end
+
+  -- Reset last_saved_file since this is a new chat
+  utils.state.last_saved_file = nil
 end
 
 -- Update the clear function
