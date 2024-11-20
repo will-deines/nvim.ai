@@ -4,6 +4,14 @@ local path = require("plenary.path")
 
 local M = {}
 
+local function get_file_content(file_path)
+  local p = path:new(file_path)
+  if p:exists() and not p:is_dir() then
+    return p:read()
+  end
+  return nil
+end
+
 -- Main function to expand commands in content
 function M.expand_commands_for_save(lines)
   local expanded_lines = {}
@@ -55,14 +63,6 @@ function M.expand_commands_for_save(lines)
   end
 
   return table.concat(expanded_lines, "\n")
-end
-
-local function get_file_content(file_path)
-  local p = path:new(file_path)
-  if p:exists() and not p:is_dir() then
-    return p:read()
-  end
-  return nil
 end
 
 function M.append_text(state, text)
