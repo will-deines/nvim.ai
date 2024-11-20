@@ -234,13 +234,42 @@ function ChatDialog.send()
   end
 end
 
+-- Store and archive chat history file
+function ChatDialog.save_and_create_new()
+  if not (utils.state.buf and api.nvim_buf_is_valid(utils.state.buf)) then
+    print("No valid chat buffer to save.")
+    return
+  end
+
+  -- Get current buffer contents
+  local lines = api.nvim_buf_get_lines(utils.state.buf, 0, -1, false)
+  local expanded_content = message_handler.expand_commands_for_save(lines)
+
+  -- Generate new filename and save expanded content
+  local filename = generate_chat_filename()
+  local file = io.open(filename, "w")
+  if file then
+    file:write(expanded_content)
+    file:close()
+    print("Chat saved to: " .. filename)
+  else
+    print("Failed to save chat to file: " .. filename)
+    return
+  end
+
+  -- Create new empty buffer
+  utils.state.buf = create_buf()
+  if utils.state.win and api.nvim_win_is_valid(utils.state.win) then
+    api.nvim_win_set_buf(utils.state.win, utils.state.buf)
+    api.nvim_buf_set_lines(utils.state.buf, 0, -1, false, { "/user:", "", "" })
+    api.nvim_win_set_cursor(utils.state.win, { 3, 0 })
+  end
+end
+
+-- Update the clear function
 function ChatDialog.clear()
   if utils.state.buf and api.nvim_buf_is_valid(utils.state.buf) then
-    api.nvim_buf_set_lines(utils.state.buf, 0, -1, false, { "/user:", "", "" })
-    -- Set the cursor to the end of the two newlines after "/user:"
-    if utils.state.win and api.nvim_win_is_valid(utils.state.win) then
-      api.nvim_win_set_cursor(utils.state.win, { 3, 0 })
-    end
+    ChatDialog.save_and_create_new()
   end
 end
 
