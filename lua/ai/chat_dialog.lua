@@ -109,20 +109,23 @@ function ChatDialog.save_file(skip_rename)
     print("No valid chat buffer to save.")
     return
   end
+
   local filename = utils.state.last_saved_file or generate_chat_filename()
-  -- Get buffer contents
-  local lines = api.nvim_buf_get_lines(utils.state.buf, 0, -1, false)
-  local content = table.concat(lines, "\n")
+  -- Get expanded buffer contents using get_chat_history
+  local content = message_handler.get_chat_history(utils.state)
+
   -- Write to file
   local file = io.open(filename, "w")
   if file then
     file:write(content)
     file:close()
     print("Chat saved to: " .. filename)
+
     -- Only set buffer name if not skipping rename
     if not skip_rename then
       api.nvim_buf_set_name(utils.state.buf, filename)
     end
+
     -- Update the last saved file
     utils.state.last_saved_file = filename
   else
@@ -216,8 +219,14 @@ local function runChatProcess()
   local system_prompt = message_handler.get_system_prompt(utils.state)
   local chat_history = message_handler.get_chat_history(utils.state)
   local last_user_request = message_handler.last_user_request(utils.state)
-  local full_prompt = chat_history .. "\n/user:\n" .. last_user_request
 
+  -- Save the expanded chat history before sending
+  vim.schedule(function()
+    ChatDialog.save_file(true) -- true to skip rename
+  end)
+
+  -- Send to provider
+  local full_prompt = chat_history .. "\n/user:\n" .. last_user_request
   message_handler.append_text(utils.state, "\n\n/assistant:\n")
   Assistant.ask(system_prompt, full_prompt, function(response)
     message_handler.append_text(utils.state, response)
@@ -243,15 +252,14 @@ function ChatDialog.save_and_create_new()
     return
   end
 
-  -- Get current buffer contents
-  local lines = api.nvim_buf_get_lines(utils.state.buf, 0, -1, false)
-  local expanded_content = message_handler.expand_commands_for_save(lines)
+  -- Get current buffer contents and expand using the same logic as get_chat_history
+  local chat_history = message_handler.get_chat_history(utils.state)
 
   -- Generate new filename and save expanded content
   local filename = generate_chat_filename()
   local file = io.open(filename, "w")
   if file then
-    file:write(expanded_content)
+    file:write(chat_history)
     file:close()
     print("Chat saved to: " .. filename)
   else
