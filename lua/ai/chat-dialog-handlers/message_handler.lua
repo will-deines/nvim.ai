@@ -139,16 +139,8 @@ function M.get_chat_history(state)
         table.insert(chat_history, line .. " (File not found or unreadable)")
       end
     elseif line:match("^/dir%s+(.+)") then
-      local dir_path = line:match("^/dir%s+(.+)")
-      scan.scan_dir(dir_path, {
-        hidden = true,
-        respect_gitignore = true,
-        only_dirs = false,
-        on_insert = function(file)
-          local relative_path = vim.fn.fnamemodify(file, ":.")
-          table.insert(chat_history, string.format("/file %s", relative_path))
-        end,
-      })
+      -- Just add the command line to history, expansion happens in expand_commands_for_save
+      table.insert(chat_history, line)
     elseif current_entry then
       current_entry = current_entry .. "\n" .. line
     end
