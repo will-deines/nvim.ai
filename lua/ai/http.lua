@@ -54,21 +54,19 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete)
     end
   end
 
-  -- Save request body to file if it's large
-  local request_file = nil
-  if #vim.json.encode(spec.body) > 1024 * 1024 then -- 1MB threshold
-    request_file = create_request_file(spec.body)
-    if not request_file then
-      Utils.error("Failed to create request file")
-      on_complete("Failed to create request file")
-      return
-    end
+  -- Always save request body to file to avoid command line limits
+  local request_file = create_request_file(spec.body)
+  if not request_file then
+    Utils.error("Failed to create request file")
+    on_complete("Failed to create request file")
+    return
   end
 
   local curl_opts = {
     headers = spec.headers,
     proxy = spec.proxy,
     insecure = spec.insecure,
+    raw = { "--data-binary", "@" .. request_file }, -- Use --data-binary with @filename
     stream = spec.stream and function(err, data)
       if err then
         Utils.debug("Stream error: " .. vim.inspect(err), { title = "NVIM.AI HTTP Error" })
@@ -89,20 +87,11 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete)
           P[provider].parse_response(complete_json, false, handler_opts)
         end)
       end
-      -- Clean up temporary file if it exists
-      if request_file then
-        os.remove(request_file)
-      end
+      -- Clean up temporary file
+      os.remove(request_file)
       active_job = nil
     end,
   }
-
-  -- Use file-based request if available
-  if request_file then
-    curl_opts.body_file = request_file
-  else
-    curl_opts.body = vim.json.encode(spec.body)
-  end
 
   active_job = curl.post(spec.url, curl_opts)
 
@@ -112,9 +101,7 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete)
     callback = function()
       if active_job then
         active_job:shutdown()
-        if request_file then
-          os.remove(request_file)
-        end
+        os.remove(request_file)
         Utils.debug("LLM request cancelled", { title = "NVIM.AI" })
         active_job = nil
       end
