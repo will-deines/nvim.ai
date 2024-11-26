@@ -1,11 +1,12 @@
 local Utils = require("ai.utils")
-local Config = require("ai.config")
 local P = require("ai.providers")
 local M = {}
 M.API_KEY = "ANTHROPIC_API_KEY"
+
 M.has = function()
   return vim.fn.executable("curl") == 1 and os.getenv(M.API_KEY) ~= nil
 end
+
 M.parse_response = function(data_stream, stream, opts)
   if not data_stream or data_stream == "" then
     return
@@ -54,6 +55,7 @@ M.parse_response = function(data_stream, stream, opts)
     end
   end
 end
+
 M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
   local headers = {
@@ -64,46 +66,51 @@ M.parse_curl_args = function(provider, code_opts)
   }
   local messages = {}
   local system = {}
-  -- Handle system prompt with cache_control
+
+  -- Handle system prompt and merge with document
   if code_opts.system_prompt ~= nil then
+    -- Merge the document with the system prompt
+    local system_text = code_opts.system_prompt
+    if code_opts.document and code_opts.document ~= "" then
+      system_text = system_text .. "\n\n" .. code_opts.document
+    end
     table.insert(system, {
       type = "text",
-      text = code_opts.system_prompt,
+      text = system_text,
       cache_control = { type = "ephemeral" },
     })
   end
+
   -- Process chat history
   for _, msg in ipairs(code_opts.chat_history) do
     if msg.role == "user" then
-      local content = {
-        {
-          type = "text",
-          text = msg.content,
-        },
-      }
-      -- Add document content to first user message only, with cache_control
-      if code_opts.document and #messages == 0 then
-        table.insert(content, 1, {
-          type = "text",
-          text = code_opts.document,
-          cache_control = { type = "ephemeral" },
-        })
-      end
       table.insert(messages, {
         role = "user",
-        content = content,
+        content = {
+          {
+            type = "text",
+            text = msg.content,
+          },
+        },
       })
     elseif msg.role == "assistant" then
       table.insert(messages, {
         role = "assistant",
-        content = msg.content,
+        content = {
+          {
+            type = "text",
+            text = msg.content,
+          },
+        },
       })
     end
   end
+
   -- Filter out any messages with null or empty content
   messages = vim.tbl_filter(function(msg)
     return msg.content and #msg.content > 0
   end, messages)
+
   return {
     url = Utils.trim(base.endpoint, { suffix = "/" }) .. "/v1/messages",
     proxy = base.proxy,
@@ -119,4 +126,5 @@ M.parse_curl_args = function(provider, code_opts)
     }, body_opts),
   }
 end
+
 return M
