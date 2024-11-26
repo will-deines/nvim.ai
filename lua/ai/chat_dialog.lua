@@ -183,7 +183,7 @@ end
 
 function ChatDialog.close()
   if utils.state.win and api.nvim_win_is_valid(utils.state.win) then
-    Utils.stop_loading() -- Stop loading indicator when closing
+    utils.stop_loading() -- Stop loading indicator when closing
     api.nvim_win_close(utils.state.win, true)
   end
   utils.state.win = nil
