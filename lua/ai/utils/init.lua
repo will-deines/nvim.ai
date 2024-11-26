@@ -272,13 +272,13 @@ M.start_loading = function(win_id, buf_id)
   local frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local prefix = "⌛ Waiting for response "
   local cancel_key = require("ai.chat_dialog").config.keymaps.cancel
-  local suffix = string.format(" ... (Press %s to cancel)", cancel_key)
+  local suffix = cancel_key and string.format(" ... (Press %s to cancel)", cancel_key) or " ..."
   local i = 1
   M.state.loading = true
   M.state.loading_timer = vim.uv.new_timer()
   if M.state.loading_timer then
-    -- Add empty line before spinner
-    vim.api.nvim_buf_set_lines(buf_id, -1, -1, false, { "" })
+    -- Add two empty lines before spinner
+    vim.api.nvim_buf_set_lines(buf_id, -1, -1, false, { "", "" })
     M.state.spinner_line = vim.api.nvim_buf_line_count(buf_id)
     vim.api.nvim_buf_set_lines(
       buf_id,
