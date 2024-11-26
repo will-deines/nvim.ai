@@ -8,25 +8,54 @@ local fzf = require("fzf-lua")
 
 local ChatDialog = {}
 
+local function get_win_config()
+  local width = ChatDialog.config.width
+  local height = api.nvim_get_option("lines") - 4
+  local col = ChatDialog.config.side == "left" and 0 or (api.nvim_get_option("columns") - width)
+
+  return {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = 1,
+    col = col,
+    style = "minimal", -- Disables UI elements we don't need
+    border = ChatDialog.config.borderchars,
+    title = " Chat ", -- Added title
+    title_pos = "center",
+    focusable = true,
+    zindex = 50, -- Default for floats
+    noautocmd = false, -- Allow autocommands
+  }
+end
+
+-- Update config with new options
 ChatDialog.config = {
   width = 80,
   side = "right",
   borderchars = {
-    "│", -- left
+    "╭", -- topleft
     "─", -- top
+    "╮", -- topright
     "│", -- right
+    "╯", -- botright
     "─", -- bottom
     "╰", -- botleft
-    "╭", -- topleft
-    "╮", -- topright
-    "╯", -- botright
+    "│", -- left
+  },
+  title = " Chat ",
+  title_pos = "center",
+  highlight = {
+    border = "FloatBorder",
+    background = "NormalFloat",
+    title = "FloatTitle",
   },
 }
 
 local function create_buf()
   local buf = api.nvim_create_buf(false, true)
 
-  -- Set buffer options using vim.bo
+  -- Buffer options
   vim.bo[buf].buftype = "nofile"
   vim.bo[buf].bufhidden = "hide"
   vim.bo[buf].buflisted = false
@@ -34,21 +63,6 @@ local function create_buf()
   vim.bo[buf].filetype = config.FILE_TYPE
 
   return buf
-end
-
-local function get_win_config()
-  local width = ChatDialog.config.width
-  local height = api.nvim_get_option("lines") - 4
-  local col = ChatDialog.config.side == "left" and 0 or (api.nvim_get_option("columns") - width)
-  return {
-    relative = "editor",
-    width = width,
-    height = height,
-    row = 1, -- Added 1 to leave space for statusline
-    col = col,
-    style = "minimal",
-    border = ChatDialog.config.borderchars,
-  }
 end
 
 local function get_project_name()
@@ -182,7 +196,12 @@ function ChatDialog.open()
   local win_config = get_win_config()
   utils.state.win = api.nvim_open_win(utils.state.buf, true, win_config)
 
-  -- Set window options using vim.wo
+  -- Window-local options
+  vim.wo[utils.state.win].number = false
+  vim.wo[utils.state.win].relativenumber = false
+  vim.wo[utils.state.win].signcolumn = "auto"
+  vim.wo[utils.state.win].spell = false
+  vim.wo[utils.state.win].list = false
   vim.wo[utils.state.win].wrap = true
   vim.wo[utils.state.win].linebreak = true
   vim.wo[utils.state.win].cursorline = true
