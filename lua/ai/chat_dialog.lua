@@ -7,10 +7,20 @@ local providers = require("ai.providers")
 local fzf = require("fzf-lua")
 
 local ChatDialog = {}
+
 ChatDialog.config = {
   width = 80,
   side = "right",
-  borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
+  borderchars = {
+    "─", -- top
+    "│", -- right
+    "─", -- bottom
+    "│", -- left
+    "╭", -- topleft
+    "╮", -- topright
+    "╯", -- botright
+    "╰", -- botleft
+  },
 }
 
 local function create_buf()
