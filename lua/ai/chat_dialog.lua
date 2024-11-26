@@ -12,14 +12,14 @@ ChatDialog.config = {
   width = 80,
   side = "right",
   borderchars = {
+    "│", -- left
     "─", -- top
     "│", -- right
     "─", -- bottom
-    "│", -- left
+    "╰", -- botleft
     "╭", -- topleft
     "╮", -- topright
     "╯", -- botright
-    "╰", -- botleft
   },
 }
 
