@@ -11,6 +11,7 @@ M.state = {
   selectedModel = nil,
   loading = false,
   loading_timer = nil,
+  spinner_line = nil,
 }
 
 setmetatable(M, {
@@ -257,6 +258,13 @@ M.buf_list_wins = function(bufnr)
   return wins
 end
 
+M.remove_spinner = function(buf_id)
+  if M.state.spinner_line and vim.api.nvim_buf_is_valid(buf_id) then
+    vim.api.nvim_buf_set_lines(buf_id, M.state.spinner_line - 1, M.state.spinner_line, false, {})
+    M.state.spinner_line = nil
+  end
+end
+
 M.start_loading = function(win_id, buf_id)
   if M.state.loading_timer then
     return
@@ -266,12 +274,17 @@ M.start_loading = function(win_id, buf_id)
   local cancel_key = require("ai.chat_dialog").config.keymaps.cancel or "<C-c>"
   local suffix = string.format(" ... (Press %s to cancel)", cancel_key)
   local i = 1
-
   M.state.loading = true
   M.state.loading_timer = vim.uv.new_timer()
   if M.state.loading_timer then
-    -- Store the line number where we insert the spinner
-    local spinner_line = nil
+    M.state.spinner_line = vim.api.nvim_buf_line_count(buf_id)
+    vim.api.nvim_buf_set_lines(
+      buf_id,
+      M.state.spinner_line - 1,
+      M.state.spinner_line,
+      false,
+      { prefix .. frames[i] .. suffix }
+    )
 
     M.state.loading_timer:start(
       0,
@@ -281,19 +294,14 @@ M.start_loading = function(win_id, buf_id)
           M.stop_loading()
           return
         end
-
         if M.state.loading then
-          local line_count = vim.api.nvim_buf_line_count(buf_id)
-
-          -- If we haven't stored the spinner line or it's invalid, find/create it
-          if not spinner_line or spinner_line > line_count then
-            spinner_line = line_count
-            vim.api.nvim_buf_set_lines(buf_id, spinner_line - 1, spinner_line, false, { prefix .. frames[i] .. suffix })
-          else
-            -- Update existing spinner line
-            vim.api.nvim_buf_set_lines(buf_id, spinner_line - 1, spinner_line, false, { prefix .. frames[i] .. suffix })
-          end
-
+          vim.api.nvim_buf_set_lines(
+            buf_id,
+            M.state.spinner_line - 1,
+            M.state.spinner_line,
+            false,
+            { prefix .. frames[i] .. suffix }
+          )
           i = (i % #frames) + 1
         end
       end)
@@ -307,6 +315,7 @@ M.stop_loading = function()
     M.state.loading_timer:close()
     M.state.loading_timer = nil
     M.state.loading = false
+    M.remove_spinner(M.state.buf)
   end
 end
 

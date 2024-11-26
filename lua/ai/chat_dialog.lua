@@ -263,15 +263,14 @@ local function runChatProcess()
 
   -- Send to provider
   local full_prompt = chat_history .. "\n/user:\n" .. last_user_request
-  message_handler.append_text(utils.state, "\n\n/assistant:\n")
 
-  -- Start loading indicator
+  -- Start loading indicator before assistant line
   utils.start_loading(utils.state.win, utils.state.buf)
+  message_handler.append_text(utils.state, "\n\n/assistant:\n")
 
   Assistant.ask(system_prompt, full_prompt, function(response)
     message_handler.append_text(utils.state, response)
   end, function()
-    -- Stop loading indicator
     utils.stop_loading()
     ChatDialog.on_complete()
   end)
