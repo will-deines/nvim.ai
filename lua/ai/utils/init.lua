@@ -9,6 +9,8 @@ M.state = {
   current_model = nil,
   selectedProvider = nil,
   selectedModel = nil,
+  loading = false,
+  loading_timer = nil,
 }
 
 setmetatable(M, {
@@ -253,6 +255,50 @@ M.buf_list_wins = function(bufnr)
   end
 
   return wins
+end
+
+M.start_loading = function(win_id, buf_id)
+  if M.state.loading_timer then
+    return
+  end
+  local frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+  local prefix = "⌛ Waiting for response "
+  local cancel_key = require("ai.chat_dialog").config.keymaps.cancel or "<C-c>"
+  local suffix = string.format(" ... (Press %s to cancel)", cancel_key)
+  local i = 1
+
+  M.state.loading = true
+  M.state.loading_timer = vim.uv.new_timer()
+  if M.state.loading_timer then
+    M.state.loading_timer:start(
+      0,
+      100,
+      vim.schedule_wrap(function()
+        if not (vim.api.nvim_win_is_valid(win_id) and vim.api.nvim_buf_is_valid(buf_id)) then
+          M.stop_loading()
+          return
+        end
+        if M.state.loading then
+          local lines = vim.api.nvim_buf_get_lines(buf_id, -2, -1, false)
+          local last_line = lines[1] or ""
+          if last_line:match("^⌛ Waiting for response [⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] .*%(Press.*%)") then
+            last_line = ""
+          end
+          vim.api.nvim_buf_set_lines(buf_id, -2, -1, false, { prefix .. frames[i] .. suffix .. last_line })
+          i = (i % #frames) + 1
+        end
+      end)
+    )
+  end
+end
+
+M.stop_loading = function()
+  if M.state.loading_timer then
+    M.state.loading_timer:stop()
+    M.state.loading_timer:close()
+    M.state.loading_timer = nil
+  end
+  M.state.loading = false
 end
 
 return M

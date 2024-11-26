@@ -183,6 +183,7 @@ end
 
 function ChatDialog.close()
   if utils.state.win and api.nvim_win_is_valid(utils.state.win) then
+    Utils.stop_loading() -- Stop loading indicator when closing
     api.nvim_win_close(utils.state.win, true)
   end
   utils.state.win = nil
@@ -228,9 +229,15 @@ local function runChatProcess()
   -- Send to provider
   local full_prompt = chat_history .. "\n/user:\n" .. last_user_request
   message_handler.append_text(utils.state, "\n\n/assistant:\n")
+
+  -- Start loading indicator
+  utils.start_loading(utils.state.win, utils.state.buf)
+
   Assistant.ask(system_prompt, full_prompt, function(response)
     message_handler.append_text(utils.state, response)
   end, function()
+    -- Stop loading indicator
+    utils.stop_loading()
     ChatDialog.on_complete()
   end)
 end
@@ -287,14 +294,25 @@ function ChatDialog.clear()
 end
 
 function ChatDialog.setup()
-  ChatDialog.config = vim.tbl_deep_extend("force", ChatDialog.config, config.config.ui or {})
-  -- Create user commands
-  api.nvim_create_user_command("ChatDialogToggle", function()
-    ChatDialog.toggle()
-  end, {})
-  api.nvim_create_user_command("ChatDialogClear", function()
-    ChatDialog.clear()
-  end, {})
+  -- Add cancel keymap to config
+  ChatDialog.config.keymaps = ChatDialog.config.keymaps or {}
+  ChatDialog.config.keymaps.cancel = ChatDialog.config.keymaps.cancel or "<C-c>"
+
+  -- Set up buffer-local keymap for cancellation
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = config.FILE_TYPE,
+    callback = function(ev)
+      vim.keymap.set("n", ChatDialog.config.keymaps.cancel, function()
+        -- Trigger the cancel event
+        vim.api.nvim_exec_autocmds("User", {
+          pattern = "NVIMAIHTTPEscape",
+          modeline = false,
+        })
+        -- Stop the loading spinner
+        Utils.stop_loading()
+      end, { buffer = ev.buf, desc = "Cancel AI response" })
+    end,
+  })
 end
 
 return ChatDialog

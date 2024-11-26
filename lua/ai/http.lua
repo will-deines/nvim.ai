@@ -62,23 +62,25 @@ M.stream = function(system_prompt, prompt, on_chunk, on_complete)
     return
   end
 
+  local function handle_error(err)
+    Utils.stop_loading() -- Stop loading indicator on error
+    Utils.debug("HTTP error: " .. vim.inspect(err), { title = "NVIM.AI HTTP Error" })
+    on_complete(err)
+  end
+
   local curl_opts = {
     headers = spec.headers,
     proxy = spec.proxy,
     insecure = spec.insecure,
-    raw = { "--data-binary", "@" .. request_file }, -- Use --data-binary with @filename
+    raw = { "--data-binary", "@" .. request_file },
     stream = spec.stream and function(err, data)
       if err then
-        Utils.debug("Stream error: " .. vim.inspect(err), { title = "NVIM.AI HTTP Error" })
-        on_complete(err)
+        handle_error(err)
         return
       end
       handle_response(data)
     end or nil,
-    on_error = function(err)
-      Utils.debug("HTTP error: " .. vim.inspect(err), { title = "NVIM.AI HTTP Error" })
-      on_complete(err)
-    end,
+    on_error = handle_error,
     callback = function(response)
       if not spec.stream then
         handle_response(response.body)

@@ -57,11 +57,17 @@ function M.get_chat_history(state)
   if not (state.buf and api.nvim_buf_is_valid(state.buf)) then
     return ""
   end
+
   local lines = api.nvim_buf_get_lines(state.buf, 0, -1, false)
   local chat_history = {}
   local current_entry = nil
 
   for _, line in ipairs(lines) do
+    -- Skip loading indicator lines with cancel instruction
+    if line:match("^⌛ Waiting for response [⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] .*%(Press.*%)") then
+      goto continue
+    end
+
     if line:match("^/user:") or line:match("^/assistant:") or line:match("^/system:") then
       if current_entry then
         table.insert(chat_history, current_entry)
@@ -90,7 +96,6 @@ function M.get_chat_history(state)
       local dir_path = line:match("^/dir%s+(.+)")
       table.insert(chat_history, line)
       table.insert(chat_history, "\nDirectory contents:")
-
       local files = {}
       scan.scan_dir(dir_path, {
         hidden = true,
@@ -120,11 +125,13 @@ function M.get_chat_history(state)
     elseif current_entry then
       current_entry = current_entry .. "\n" .. line
     end
+    ::continue::
   end
 
   if current_entry then
     table.insert(chat_history, current_entry)
   end
+
   return table.concat(chat_history, "\n")
 end
 
