@@ -60,20 +60,21 @@ M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
   local headers = {
     ["Content-Type"] = "application/json",
-    ["x-api-key"] = os.getenv(M.API_KEY),
-    ["anthropic-version"] = "2023-06-01",
-    ["anthropic-beta"] = "prompt-caching-2024-07-31",
+    ["X-Api-Key"] = os.getenv(M.API_KEY),
+    ["Anthropic-Version"] = "2023-06-01",
+    ["Anthropic-Beta"] = "prompt-caching-2024-07-31",
   }
+
   local messages = {}
   local system = {}
 
   -- Handle system prompt and merge with document
-  if code_opts.system_prompt ~= nil then
-    -- Merge the document with the system prompt
-    local system_text = code_opts.system_prompt
-    if code_opts.document and code_opts.document ~= "" then
-      system_text = system_text .. "\n\n" .. code_opts.document
-    end
+  local system_text = code_opts.system_prompt or ""
+  if code_opts.document and #code_opts.document > 0 then
+    system_text = system_text .. "\n\n" .. code_opts.document
+  end
+
+  if #system_text > 0 then
     table.insert(system, {
       type = "text",
       text = system_text,
@@ -83,33 +84,36 @@ M.parse_curl_args = function(provider, code_opts)
 
   -- Process chat history
   for _, msg in ipairs(code_opts.chat_history) do
-    if msg.role == "user" then
-      table.insert(messages, {
-        role = "user",
-        content = {
-          {
-            type = "text",
-            text = msg.content,
-          },
-        },
-      })
-    elseif msg.role == "assistant" then
-      table.insert(messages, {
-        role = "assistant",
-        content = {
-          {
-            type = "text",
-            text = msg.content,
-          },
-        },
-      })
+    if msg.role == "user" or msg.role == "assistant" then
+      local content_parts = {}
+      if msg.content and #msg.content > 0 then
+        table.insert(content_parts, {
+          type = "text",
+          text = msg.content,
+        })
+      end
+      if #content_parts > 0 then
+        table.insert(messages, {
+          role = msg.role,
+          content = content_parts,
+        })
+      end
     end
   end
 
-  -- Filter out any messages with null or empty content
+  -- Filter out messages with empty text content
   messages = vim.tbl_filter(function(msg)
-    return msg.content and #msg.content > 0
+    if msg.content and #msg.content > 0 then
+      for _, part in ipairs(msg.content) do
+        if part.text and #part.text > 0 then
+          return true
+        end
+      end
+    end
+    return false
   end, messages)
+
+  local max_tokens = base.max_tokens and base.max_tokens[Utils.state.current_model] or 8192
 
   return {
     url = Utils.trim(base.endpoint, { suffix = "/" }) .. "/v1/messages",
@@ -121,8 +125,8 @@ M.parse_curl_args = function(provider, code_opts)
       temperature = base.temperature,
       model = Utils.state.current_model,
       messages = messages,
-      stream = false,
-      max_tokens = base.max_tokens[Utils.state.current_model],
+      stream = base.stream or false,
+      max_tokens = max_tokens,
     }, body_opts),
   }
 end
