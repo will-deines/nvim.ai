@@ -309,7 +309,7 @@ function ChatDialog.setup()
           modeline = false,
         })
         -- Stop the loading spinner
-        Utils.stop_loading()
+        utils.stop_loading()
       end, { buffer = ev.buf, desc = "Cancel AI response" })
     end,
   })
