@@ -71,7 +71,7 @@ M.parse_curl_args = function(provider, code_opts)
   local messages = {}
   local system = {}
 
-  -- Handle system prompt
+  -- Handle system prompt with cache_control
   if code_opts.system_prompt ~= nil then
     table.insert(system, {
       type = "text",
@@ -80,17 +80,16 @@ M.parse_curl_args = function(provider, code_opts)
     })
   end
 
-  -- Process chat history with combined document content
+  -- Process chat history
   for _, msg in ipairs(code_opts.chat_history) do
     if msg.role == "user" then
       local content = {
         {
           type = "text",
           text = msg.content,
-          cache_control = { type = "ephemeral" },
         },
       }
-      -- Add document content to first user message only
+      -- Add document content to first user message only, with cache_control
       if code_opts.document and #messages == 0 then
         table.insert(content, 1, {
           type = "text",
