@@ -8,18 +8,21 @@ local fzf = require("fzf-lua")
 
 local ChatDialog = {}
 ChatDialog.config = {
-  width = 40,
+  width = 80,
   side = "right",
   borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
 }
 
 local function create_buf()
   local buf = api.nvim_create_buf(false, true)
-  api.nvim_buf_set_option(buf, "buftype", "nofile")
-  api.nvim_buf_set_option(buf, "bufhidden", "hide")
-  api.nvim_buf_set_option(buf, "buflisted", false)
-  api.nvim_buf_set_option(buf, "swapfile", false)
-  api.nvim_buf_set_option(buf, "filetype", config.FILE_TYPE)
+
+  -- Set buffer options using vim.bo
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].bufhidden = "hide"
+  vim.bo[buf].buflisted = false
+  vim.bo[buf].swapfile = false
+  vim.bo[buf].filetype = config.FILE_TYPE
+
   return buf
 end
 
@@ -31,7 +34,7 @@ local function get_win_config()
     relative = "editor",
     width = width,
     height = height,
-    row = 0,
+    row = 1, -- Added 1 to leave space for statusline
     col = col,
     style = "minimal",
     border = ChatDialog.config.borderchars,
@@ -151,34 +154,37 @@ function ChatDialog.open()
     api.nvim_set_current_win(utils.state.win)
     return
   end
+
   local file_to_load = utils.state.last_saved_file or find_most_recent_chat_file()
   if file_to_load then
     utils.state.buf = vim.fn.bufadd(file_to_load)
     vim.fn.bufload(utils.state.buf)
-    api.nvim_buf_set_option(utils.state.buf, "buftype", "nofile")
-    api.nvim_buf_set_option(utils.state.buf, "bufhidden", "hide")
-    api.nvim_buf_set_option(utils.state.buf, "swapfile", false)
-    api.nvim_buf_set_option(utils.state.buf, "filetype", config.FILE_TYPE)
+
+    -- Set buffer options for loaded file
+    vim.bo[utils.state.buf].buftype = "nofile"
+    vim.bo[utils.state.buf].bufhidden = "hide"
+    vim.bo[utils.state.buf].swapfile = false
+    vim.bo[utils.state.buf].filetype = config.FILE_TYPE
   else
     utils.state.buf = utils.state.buf or create_buf()
   end
+
   local win_config = get_win_config()
   utils.state.win = api.nvim_open_win(utils.state.buf, true, win_config)
-  -- Set window options
-  api.nvim_win_set_option(utils.state.win, "wrap", true)
-  api.nvim_win_set_option(utils.state.win, "linebreak", true) -- Wrap at word boundaries
-  api.nvim_win_set_option(utils.state.win, "cursorline", true)
-  -- Check if the buffer is empty and add "/user:" followed by two line breaks if it is
+
+  -- Set window options using vim.wo
+  vim.wo[utils.state.win].wrap = true
+  vim.wo[utils.state.win].linebreak = true
+  vim.wo[utils.state.win].cursorline = true
+
+  -- Check if buffer is empty and initialize if needed
   local lines = api.nvim_buf_get_lines(utils.state.buf, 0, -1, false)
   if #lines == 0 or (#lines == 1 and lines[1] == "") then
     api.nvim_buf_set_lines(utils.state.buf, 0, -1, false, { "/user:", "", "" })
-    -- Set the cursor to the end of the two newlines after "/user:"
     api.nvim_win_set_cursor(utils.state.win, { 3, 0 })
   end
-  -- Focus on the chat dialog window
+
   api.nvim_set_current_win(utils.state.win)
-  -- Automatically enter insert mode
-  -- vim.cmd("startinsert")
 end
 
 function ChatDialog.close()

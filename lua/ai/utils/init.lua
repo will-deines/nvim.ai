@@ -270,6 +270,9 @@ M.start_loading = function(win_id, buf_id)
   M.state.loading = true
   M.state.loading_timer = vim.uv.new_timer()
   if M.state.loading_timer then
+    -- Store the line number where we insert the spinner
+    local spinner_line = nil
+
     M.state.loading_timer:start(
       0,
       100,
@@ -278,13 +281,19 @@ M.start_loading = function(win_id, buf_id)
           M.stop_loading()
           return
         end
+
         if M.state.loading then
-          local lines = vim.api.nvim_buf_get_lines(buf_id, -2, -1, false)
-          local last_line = lines[1] or ""
-          if last_line:match("^⌛ Waiting for response [⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] .*%(Press.*%)") then
-            last_line = ""
+          local line_count = vim.api.nvim_buf_line_count(buf_id)
+
+          -- If we haven't stored the spinner line or it's invalid, find/create it
+          if not spinner_line or spinner_line > line_count then
+            spinner_line = line_count
+            vim.api.nvim_buf_set_lines(buf_id, spinner_line - 1, spinner_line, false, { prefix .. frames[i] .. suffix })
+          else
+            -- Update existing spinner line
+            vim.api.nvim_buf_set_lines(buf_id, spinner_line - 1, spinner_line, false, { prefix .. frames[i] .. suffix })
           end
-          vim.api.nvim_buf_set_lines(buf_id, -2, -1, false, { prefix .. frames[i] .. suffix .. last_line })
+
           i = (i % #frames) + 1
         end
       end)
@@ -297,8 +306,8 @@ M.stop_loading = function()
     M.state.loading_timer:stop()
     M.state.loading_timer:close()
     M.state.loading_timer = nil
+    M.state.loading = false
   end
-  M.state.loading = false
 end
 
 return M
