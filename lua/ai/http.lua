@@ -25,7 +25,7 @@ local function create_request_file(body)
 end
 
 M.stream = function(system_prompt, prompt, on_chunk, on_complete)
-  local provider = utils.state.selectedProvider
+  local provider = Utils.state.selectedProvider
   local code_opts = {
     system_prompt = system_prompt,
     document = prompt.document,
