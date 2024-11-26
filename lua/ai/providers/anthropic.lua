@@ -2,18 +2,14 @@ local Utils = require("ai.utils")
 local Config = require("ai.config")
 local P = require("ai.providers")
 local M = {}
-
 M.API_KEY = "ANTHROPIC_API_KEY"
-
 M.has = function()
   return vim.fn.executable("curl") == 1 and os.getenv(M.API_KEY) ~= nil
 end
-
 M.parse_response = function(data_stream, stream, opts)
   if not data_stream or data_stream == "" then
     return
   end
-
   if stream then
     -- Handle streaming data
     local lines = vim.split(data_stream, "\n")
@@ -58,7 +54,6 @@ M.parse_response = function(data_stream, stream, opts)
     end
   end
 end
-
 M.parse_curl_args = function(provider, code_opts)
   local base, body_opts = P.parse_config(provider)
   local headers = {
@@ -67,10 +62,8 @@ M.parse_curl_args = function(provider, code_opts)
     ["anthropic-version"] = "2023-06-01",
     ["anthropic-beta"] = "prompt-caching-2024-07-31",
   }
-
   local messages = {}
   local system = {}
-
   -- Handle system prompt with cache_control
   if code_opts.system_prompt ~= nil then
     table.insert(system, {
@@ -79,7 +72,6 @@ M.parse_curl_args = function(provider, code_opts)
       cache_control = { type = "ephemeral" },
     })
   end
-
   -- Process chat history
   for _, msg in ipairs(code_opts.chat_history) do
     if msg.role == "user" then
@@ -108,12 +100,10 @@ M.parse_curl_args = function(provider, code_opts)
       })
     end
   end
-
   -- Filter out any messages with null or empty content
   messages = vim.tbl_filter(function(msg)
-    return msg.content ~= nil and msg.content ~= ""
+    return msg.content and #msg.content > 0
   end, messages)
-
   return {
     url = Utils.trim(base.endpoint, { suffix = "/" }) .. "/v1/messages",
     proxy = base.proxy,
@@ -129,5 +119,4 @@ M.parse_curl_args = function(provider, code_opts)
     }, body_opts),
   }
 end
-
 return M
