@@ -271,7 +271,7 @@ M.start_loading = function(win_id, buf_id)
   end
   local frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
   local prefix = "⌛ Waiting for response "
-  local cancel_key = require("ai.chat_dialog").config.keymaps.cancel or "<C-c>"
+  local cancel_key = require("ai.chat_dialog").config.keymaps.cancel
   local suffix = string.format(" ... (Press %s to cancel)", cancel_key)
   local i = 1
   M.state.loading = true
