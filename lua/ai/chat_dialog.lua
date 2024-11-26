@@ -136,10 +136,10 @@ function ChatDialog.save_file(skip_rename)
     print("No valid chat buffer to save.")
     return
   end
-
   local filename = utils.state.last_saved_file or generate_chat_filename()
-  -- Get expanded buffer contents using get_chat_history
-  local content = message_handler.get_chat_history(utils.state)
+  -- Get raw buffer contents directly
+  local lines = api.nvim_buf_get_lines(utils.state.buf, 0, -1, false)
+  local content = table.concat(lines, "\n")
 
   -- Write to file
   local file = io.open(filename, "w")
@@ -147,13 +147,31 @@ function ChatDialog.save_file(skip_rename)
     file:write(content)
     file:close()
     print("Chat saved to: " .. filename)
-
     -- Only set buffer name if not skipping rename
     if not skip_rename then
       api.nvim_buf_set_name(utils.state.buf, filename)
     end
-
     -- Update the last saved file
+    utils.state.last_saved_file = filename
+  else
+    print("Failed to save chat to file: " .. filename)
+  end
+end
+
+function ChatDialog.save_expanded_file()
+  if not (utils.state.buf and api.nvim_buf_is_valid(utils.state.buf)) then
+    print("No valid chat buffer to save.")
+    return
+  end
+  local filename = generate_chat_filename()
+  -- Get expanded buffer contents using get_chat_history
+  local content = message_handler.get_chat_history(utils.state)
+  -- Write to file
+  local file = io.open(filename, "w")
+  if file then
+    file:write(content)
+    file:close()
+    print("Chat saved to: " .. filename)
     utils.state.last_saved_file = filename
   else
     print("Failed to save chat to file: " .. filename)
@@ -320,10 +338,19 @@ function ChatDialog.save_and_create_new()
   utils.state.last_saved_file = nil
 end
 
--- Update the clear function
 function ChatDialog.clear()
   if utils.state.buf and api.nvim_buf_is_valid(utils.state.buf) then
-    ChatDialog.save_and_create_new()
+    -- Save expanded version first
+    ChatDialog.save_expanded_file()
+    -- Create new empty buffer
+    utils.state.buf = create_buf()
+    if utils.state.win and api.nvim_win_is_valid(utils.state.win) then
+      api.nvim_win_set_buf(utils.state.win, utils.state.buf)
+      api.nvim_buf_set_lines(utils.state.buf, 0, -1, false, { "/user:", "", "" })
+      api.nvim_win_set_cursor(utils.state.win, { 3, 0 })
+    end
+    -- Reset last_saved_file since this is a new chat
+    utils.state.last_saved_file = nil
   end
 end
 

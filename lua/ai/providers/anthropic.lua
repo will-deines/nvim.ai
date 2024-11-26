@@ -1,4 +1,5 @@
 local Utils = require("ai.utils")
+local Config = require("ai.config")
 local P = require("ai.providers")
 local M = {}
 
@@ -64,23 +65,49 @@ M.parse_curl_args = function(provider, code_opts)
     ["Content-Type"] = "application/json",
     ["x-api-key"] = os.getenv(M.API_KEY),
     ["anthropic-version"] = "2023-06-01",
+    ["anthropic-beta"] = "prompt-caching-2024-07-31",
   }
-  -- Begin constructing the messages array
+
   local messages = {}
+  local system = {}
 
-  -- Include the system prompt if available.  O-series doesn't allow a system prompt, so they're all user.
+  -- Handle system prompt
   if code_opts.system_prompt ~= nil then
-    table.insert(messages, { role = "user", content = code_opts.system_prompt })
+    table.insert(system, {
+      type = "text",
+      text = code_opts.system_prompt,
+      cache_control = { type = "ephemeral" },
+    })
   end
 
-  -- Include the document content as a system message or assistant message
-  if code_opts.document ~= nil and code_opts.document ~= "" then
-    table.insert(messages, { role = "user", content = code_opts.document })
-  end
-
-  -- Append the chat history messages
+  -- Process chat history with combined document content
   for _, msg in ipairs(code_opts.chat_history) do
-    table.insert(messages, { role = msg.role, content = msg.content })
+    if msg.role == "user" then
+      local content = {
+        {
+          type = "text",
+          text = msg.content,
+          cache_control = { type = "ephemeral" },
+        },
+      }
+      -- Add document content to first user message only
+      if code_opts.document and #messages == 0 then
+        table.insert(content, 1, {
+          type = "text",
+          text = code_opts.document,
+          cache_control = { type = "ephemeral" },
+        })
+      end
+      table.insert(messages, {
+        role = "user",
+        content = content,
+      })
+    elseif msg.role == "assistant" then
+      table.insert(messages, {
+        role = "assistant",
+        content = msg.content,
+      })
+    end
   end
 
   -- Filter out any messages with null or empty content
@@ -94,7 +121,7 @@ M.parse_curl_args = function(provider, code_opts)
     insecure = base.allow_insecure,
     headers = headers,
     body = vim.tbl_deep_extend("force", {
-      system = code_opts.system_prompt,
+      system = system,
       temperature = base.temperature,
       model = Utils.state.current_model,
       messages = messages,
