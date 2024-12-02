@@ -1,190 +1,137 @@
-# nvim.ai
 
-`nvim.ai` is a powerful Neovim plugin that brings AI-assisted coding and chat capabilities directly into your favorite editor. Inspired by Zed AI, it allows you to chat with your `buffers`, insert code with an inline assistant, and leverage various LLM providers for context-aware AI assistance.
+# 🤖 Garrio Internal NVIM AI Assistant
+>
+> 🔒 Internal Neovim plugin for AI-assisted coding at Garrio, forked from [nvim.ai](https://github.com/magicalne/nvim.ai)
 
-## Chat with buffers
+## ✨ Features
 
-![Chat with buffers](https://github.com/user-attachments/assets/32f9b649-32af-4a0c-8c79-be3647ccc953)
+- 🗣️ **Multi-Provider Support**
+  - OpenAI GPT-4, o1
+  - Anthropic Claude
+  - Google Gemini
+  - Groq
+  - Cohere
+  - DeepSeek
+  - Local models (Ollama, Kobold)
+- 💬 **Interactive Chat Dialog**
+  - Hideable Floating window interface
+  - Code-aware conversations
+  - Context-sensitive completions
+  - Markdown rendering
+  - Syntax highlighting
+- 🧠 **Context-Aware Assistance**
+  - Smart code explanations
+  - Code review suggestions
+  - Project-wide awareness
+  - Multi-file context
 
-## Features
+## 🛠️ Internal Installation
 
-- 🤖 Chat with buffers: Interact with AI about your code and documents
-- 🧠 Context-aware AI assistance: Get relevant help based on your current work
-- 📝 Inline assistant:
- - ✅ Code insertion
- - 🚧 Code rewriting (Work in Progress)
-- 🌐 Multiple LLM provider support:
-   - Ollama (local)
-   - Anthropic
-   - Deepseek
-   - Groq
-   - Cohere
-   - OpenAI (not tested)
-- 🔧 Easy integration with nvim-cmp for command autocompletion
-
-## Install
-
-### vim-plug
-```
-Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
-Plug 'nvim-lua/plenary.nvim'
-Plug 'magicalne/nvim.ai', {'branch': 'main'}
-```
-
-### Lazy
-
-```Lua
--- Setup lazy.nvim
-require("lazy").setup({
-  spec = {
-    -- cmp is optional
-    {
-      "hrsh7th/nvim-cmp",
-      event = "InsertEnter",
-      dependencies = {
-        "hrsh7th/cmp-nvim-lsp",
-        "hrsh7th/cmp-buffer",
-      },
-      config = function()
-        local cmp = require'cmp'
-        cmp.setup({
-          mapping = {
-            sources = cmp.config.sources({
-              { name = 'nvimai_cmp_source' }, -- This is optional but recommended
-            })
-          }
-        })
-      end,
-    },
-    {"nvim-treesitter/nvim-treesitter", build = ":TSUpdate"}, -- nvim.ai depends on treesitter
-    {
-      "magicalne/nvim.ai",
-      dependencies = {
+```lua
+-- In your Neovim config:
+{
+    "garrio/nvim-ai",
+    dependencies = {
         "nvim-lua/plenary.nvim",
         "nvim-treesitter/nvim-treesitter",
-      },
-      opts = {
-        provider = "anthropic", -- You can configure your provider, model or keymaps here.
-      }
     },
+    config = function()
+        require("ai").setup({
+            provider = "anthropic", -- Configure your preferred provider
+        })
+    end
+}
+```
 
-  },
-  -- ...
+## ⚙️ Configuration
+
+```lua
+require("ai").setup({
+    provider = "anthropic", -- Default provider
+    ui = {
+        width = 80,
+        side = "right",
+    },
+    keymaps = {
+        toggle = "<leader>1",
+        select_model = "<leader>2",
+        send = "<CR>",
+        close = "q",
+        clear = "<C-l>",
+    }
 })
 ```
 
-## Config
+## 🔑 Environment Setup
 
-You can find all the config and keymaps from [here](https://github.com/magicalne/nvim.ai/blob/main/lua/ai/config.lua#L16).
+Add to your `.zshrc`, `.bashrc` or equivalent:
 
-### Ollama
-
-```Lua
-local ai = require('ai')
-ai.setup({
-  provider = "ollama",
-  ollama = {
-    model = "llama3.1:70b", -- You can start with smaller one like `gemma2` or `llama3.1`
-    --endpoint = "http://192.168.2.47:11434", -- In case you access ollama from another machine
-  }
-})
-```
-
-### Others
-
-#### Add you api keys to your dotfile
-
-I put my keys in `~/.config/.env` and `source` it in my `.zshrc`.
-
-```sh
+```bash
 export ANTHROPIC_API_KEY=""
 export CO_API_KEY=""
 export GROQ_API_KEY=""
 export DEEPSEEK_API_KEY=""
 ```
 
-```Lua
-local ai = require('ai')
-ai.setup({
-  provider = "deepseek", --  "anthropic", "groq", "cohere"
-})
+## 💬 Advanced Chat Usage
+
+### Chat Window Features
+
+The chat dialog is a powerful interface that supports iterative development and context-aware conversations:
+
+#### Document Management
+
+- 📄 **Add Documents**: Reference any file or buffer
+
+  ``` text
+  /buf 1    # Reference current buffer
+  /file path/to/file.js
+  /dir src/components/
+  ```
+
+- 💾 **Document Caching**: Documents are cached to reduce API costs and improve response times
+- 🔄 **Context Preservation**: Chat history maintains full context of your conversation
+- 🔄 **History Saved**: Review prior conversations saved at each window clear.
+
+#### Interactive Editing
+
+- ✏️ **Edit Previous Messages**: Modify any previous message to refine the AI's understanding
+- 🔄 **Iterative Refinement**: Edit your last prompt if you don't like the response
+- 📝 **Multi-Message Context**: Build complex conversations with multiple code references
+
+#### Chat Structure
+
+The chat uses special commands to organize conversation:
+
+``` text
+/system You are an expert in React and TypeScript
+/user
+How can I improve this component's performance?
+/assistant
+[AI response appears here...]
+/user
+Could you also check if these utility functions are optimal?
 ```
 
-### Integrate with cmp
+#### Pro Tips
 
-You may want to autocomplete commands with `cmp`:
+- 🎯 Edit the system prompt anytime to redirect the AI's expertise
+- 📚 Add multiple files/buffers in a single message for comprehensive context
+- ⚡ Use `/model` command to switch between different AI models mid-conversation
+- 🔍 Previous chats are automatically saved and can be referenced later
+- ♻️ Clear chat history with `Ctrl-l` to start fresh
 
-```Lua
-sources = cmp.config.sources({
-  { name = 'nvimai_cmp_source' },
-  --...
-}
-```
+## 🎯 Quick Commands
 
-### Default Keymaps
+- `<leader>1` - Toggle chat
+- `q` - Close chat
+- `Enter` - Send message
+- `Ctrl-l` - Clear history
+- `<leader>2` - Select provider/model
 
-#### Chat
-- <kbd>Leader</kbd><kbd>c</kbd> -- Toggle chat
-- <kbd>q</kbd> -- Close chat
-- <kbd>Enter</kbd> -- Send message in normal mode
-- <kbd>Contrl</kbd><kbd>l</kbd> -- Clear chat history
+## 📝 License
 
-#### Inline Assist
-
-- <kbd>Leader</kbd><kbd>i</kbd> — Insert code in normal mode with prompt
-- <kbd>Leader</kbd><kbd>i</kbd><kbd>a</kbd> — Accept the inserted code
-- <kbd>Leader</kbd><kbd>i</kbd><kbd>j</kbd> — Reject the inserted code
-
-## Usage
-
-### Chat
-
-The chat dialog is a special buffer. `nvim.ai` will parse the content with keywords. There are 3 roles in the buffer:
-- **/system**: You can overwrite the system prompt by inserting `/system your_system_prompt` in the first line.
-- **/you**: Lines after this are your prompt.
-  - You can add buffers with `/buf {bufnr}` (Autocomplete with `nvim_cmp_source` in `cmp` is recommended.)
-  - Once you finish your prompt, you can send the request by pressing `Enter` in normal mode.
-- **/assistant**: The streaming content from LLM will appear below this line.
-Since the chat dialog is just a buffer, you can edit anything in it. Be aware that only the last block of `/you` will be treated as the prompt.
-Just like Zed AI, this feature is called "chat with context." You can edit the last prompt if you don't like the response, and you can do this back and forth.
-
-Here is an example:
-
-```
-/system You are an expert on lua and neovim plugin development.
-
-/you
-
-/buf 1: init.lua
-
-How to blablabla?
-
-/assistance:
-...
-```
-
-### Context-Aware Assistance
-
-#### Inline Assist
-
-By pressing <kbd>leader</kbd><kbd>i</kbd> and typing your instruction, you can insert a code block anywhere in the current file.
-Alternatively, you can run the command with `:NvimAIInlineAssist {YOUR_PROMPT}`.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Acknowledgements
-
-This project is inspired by:
-- [Zed Editor](https://zed.dev/)
-- [avante.nvim](https://github.com/yetone/avante.nvim)
-
-## License
-
-nvim.ai is licensed under the Apache License. For more details, please refer to the [LICENSE](https://github.com/magicalne/nvim.ai/blob/main/LICENSE) file.
-
+Internal Garrio use only. Forked from [nvim.ai](https://github.com/magicalne/nvim.ai) under Apache License.
 
 ---
-
-⚠️ Note: This plugin is under active development. Features and usage may change.
+🔒 **Note**: This is an internal tool for Garrio employees only. Not open for external contributions.
