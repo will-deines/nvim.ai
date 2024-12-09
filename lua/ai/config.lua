@@ -84,11 +84,12 @@ M.defaults = {
   },
   openaioseries = {
     endpoint = "https://api.openai.com",
-    models = { "o1-mini", "o1-preview" },
+    models = { "o1-mini", "o1-preview", "o1" },
     temperature = 1,
     max_tokens = {
       ["o1-mini"] = 65500,
       ["o1-preview"] = 32768,
+      ["o1"] = 32768,
     },
     stream = false,
     ["local"] = false,
