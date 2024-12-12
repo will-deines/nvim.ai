@@ -58,8 +58,46 @@ require("ai").setup({
         send = "<CR>",
         close = "q",
         clear = "<C-l>",
+    },
+    -- File completion configuration
+    file_completion = {
+        exclude_patterns = {
+            "*.git/*",
+            "*/node_modules/*",
+            "*/target/*",
+            "*/dist/*",
+            "*.pyc",
+            "*.venv*"
+        },
+        max_files = 1000,
+        max_chars = 50000,
+        show_directories_first = true,
+        respect_gitignore = true
     }
 })
+```
+
+### File Exclusion Patterns
+
+The plugin automatically excludes certain paths and files from being included in the context to avoid overwhelming the AI with irrelevant information:
+
+- `*.git/*` - Git repository metadata
+- `*/node_modules/*` - Node.js dependencies
+- `*/target/*` - Build outputs
+- `*/dist/*` - Distribution files
+- `*.pyc` - Python bytecode
+- `*.venv*` - Python virtual environments
+
+You can customize these patterns in the configuration to match your project structure.
+
+### Default Behaviors
+
+- Maximum of 1000 files scanned per directory
+- Maximum of 50,000 characters per file
+- Directories shown first in completions
+- Respects `.gitignore` patterns
+- Files are cached to improve performance
+
 ```
 
 ## 🔑 Environment Setup
