@@ -24,6 +24,32 @@ local function create_request_file(body)
   return nil
 end
 
+local function safe_json_decode(str)
+  -- Use protected call with a custom decoder that can handle larger strings
+  local success, result = pcall(function()
+    -- Convert to temporary file for large JSON
+    local tmp_file = os.tmpname()
+    local f = io.open(tmp_file, "w")
+    if f then
+      f:write(str)
+      f:close()
+
+      -- Read and parse JSON from file
+      local json_str = io.open(tmp_file):read("*all")
+      os.remove(tmp_file)
+      return vim.json.decode(json_str, { luanil = { object = true, array = true } })
+    end
+    -- Fallback to direct decoding if file approach fails
+    return vim.json.decode(str, { luanil = { object = true, array = true } })
+  end)
+
+  if not success then
+    Utils.debug("JSON decode error: " .. result)
+    return nil
+  end
+  return result
+end
+
 M.stream = function(system_prompt, prompt, on_chunk, on_complete)
   local provider = Utils.state.selectedProvider
   local code_opts = {
