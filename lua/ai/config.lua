@@ -18,11 +18,20 @@ end
 -- Default configuration
 M.defaults = {
   file_completion = {
+    exclude_patterns = {
+      "*.git/*",
+      "*/node_modules/*",
+      "*/target/*",
+      "*/dist/*",
+      "*.pyc",
+      "*.venv*",
+    },
     max_files = 1000,
     max_chars = 50000,
     show_directories_first = true,
     respect_gitignore = true,
   },
+
   debug = true,
   -- Chat Dialog UI configuration
   ui = {

@@ -170,4 +170,60 @@ function M.last_user_request(state)
   end
 end
 
+local function should_exclude(file_path, exclude_patterns)
+  -- Convert to relative path for consistent matching
+  local relative_path = vim.fn.fnamemodify(file_path, ":.")
+
+  for _, pattern in ipairs(exclude_patterns) do
+    -- Check if any parent directory matches the exclude pattern
+    local parts = vim.split(relative_path, "/")
+    local current_path = ""
+
+    for _, part in ipairs(parts) do
+      current_path = current_path .. (current_path == "" and "" or "/") .. part
+      if current_path:match(vim.fn.glob2regpat(pattern)) then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+local function get_directory_contents(dir_path)
+  local config = require("ai.config")
+  local exclude_patterns = config.get("file_completion").exclude_patterns
+  local files = {}
+
+  -- Track directories to skip
+  local skip_dirs = {}
+
+  scan.scan_dir(dir_path, {
+    hidden = true,
+    respect_gitignore = true,
+    add_dirs = true, -- Include directories in scan
+    on_insert = function(file_path)
+      -- Skip if parent directory was excluded
+      for skip_dir in pairs(skip_dirs) do
+        if file_path:match("^" .. vim.pesc(skip_dir)) then
+          return
+        end
+      end
+
+      if should_exclude(file_path, exclude_patterns) then
+        if vim.fn.isdirectory(file_path) == 1 then
+          skip_dirs[file_path] = true
+        end
+        return
+      end
+
+      -- Only add files, not directories
+      if vim.fn.isdirectory(file_path) ~= 1 then
+        table.insert(files, file_path)
+      end
+    end,
+  })
+
+  return files
+end
+
 return M
