@@ -54,13 +54,19 @@ ChatDialog.config = {
 
 local function create_buf()
   local buf = api.nvim_create_buf(false, true)
-
   -- Buffer options
   vim.bo[buf].buftype = "nofile"
   vim.bo[buf].bufhidden = "hide"
   vim.bo[buf].buflisted = false
   vim.bo[buf].swapfile = false
   vim.bo[buf].filetype = config.FILE_TYPE
+  print("Created chat buffer with filetype:", vim.bo[buf].filetype)
+
+  -- Add buffer-local completion mapping
+  vim.keymap.set("i", "<C-x><C-o>", function()
+    print("Manual completion triggered")
+    require("blink.cmp").show()
+  end, { buffer = buf, desc = "Trigger completion" })
 
   return buf
 end

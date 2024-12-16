@@ -30,6 +30,7 @@ M.defaults = {
     max_chars = 50000,
     show_directories_first = true,
     respect_gitignore = true,
+    debug = false,
   },
 
   debug = true,
