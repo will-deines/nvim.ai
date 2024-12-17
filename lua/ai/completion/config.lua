@@ -4,7 +4,7 @@ local Config = {}
 
 local defaults = {
   sources = {
-    default = { "nvimai", "path", "buffer" },
+    default = { "nvimai" },
     providers = {
       nvimai = {
         name = "NvimAI",
@@ -15,31 +15,6 @@ local defaults = {
             return false
           end
           return vim.bo[ctx.bufnr or 0].filetype == "chat-dialog"
-        end,
-      },
-      path = {
-        name = "Path",
-        module = "blink.cmp.sources.path",
-        enabled = function(ctx)
-          -- Add nil check
-          if not ctx then
-            return false
-          end
-          local line = ctx.line:sub(1, ctx.cursor[2])
-          return line:match("^/file%s+") ~= nil
-        end,
-        -- Rest of path config
-      },
-      buffer = {
-        name = "Buffer",
-        module = "blink.cmp.sources.buffer",
-        enabled = function(ctx)
-          -- Add nil check
-          if not ctx then
-            return false
-          end
-          local line = ctx.line:sub(1, ctx.cursor[2])
-          return line:match("^/buf%s+") ~= nil
         end,
       },
     },
