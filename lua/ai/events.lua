@@ -45,6 +45,15 @@ local Events = {
 --- @param event string
 --- @param callback fun(data: table)
 function Events.on(event, callback)
+  -- Allow wildcard "*" event
+  if event == "*" then
+    -- Register callback for all events
+    for _, registered_event in ipairs(Events.registered_events) do
+      Events.on(registered_event, callback)
+    end
+    return
+  end
+
   -- Validate event name
   if not vim.tbl_contains(Events.registered_events, event) then
     error(
