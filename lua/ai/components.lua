@@ -1,9 +1,7 @@
 --- Component management and setup coordination
 --- @class AI.Components
 local Components = {}
-
 local Events = require("ai.events")
-
 -- Core component definitions
 local core_components = {
   {
@@ -43,16 +41,13 @@ local core_components = {
     end,
   },
 }
-
 --- Setup all plugin components
 --- @param opts table Configuration options
 --- @return { success: boolean, error?: string }
 function Components.setup(opts)
   for _, component in ipairs(core_components) do
     Events.emit("component_setup_start", { component = component.name })
-
     local ok, err = pcall(component.setup, opts)
-
     if not ok then
       Events.emit("component_setup_failed", {
         component = component.name,
@@ -63,11 +58,8 @@ function Components.setup(opts)
         error = string.format("Failed to setup %s: %s", component.name, err),
       }
     end
-
     Events.emit("component_setup_success", { component = component.name })
   end
-
   return { success = true }
 end
-
 return Components
