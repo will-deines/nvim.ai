@@ -5,14 +5,11 @@ local message_handler = require("ai.chat-dialog-handlers.message_handler")
 local utils = require("ai.utils")
 local providers = require("ai.providers")
 local fzf = require("fzf-lua")
-
 local ChatDialog = {}
-
 local function get_win_config()
   local width = ChatDialog.config.width
   local height = api.nvim_get_option("lines") - 4
   local col = ChatDialog.config.side == "left" and 0 or (api.nvim_get_option("columns") - width)
-
   return {
     relative = "editor",
     width = width,
@@ -28,7 +25,6 @@ local function get_win_config()
     noautocmd = false, -- Allow autocommands
   }
 end
-
 -- Update config with new options
 ChatDialog.config = {
   width = 80,
@@ -51,7 +47,6 @@ ChatDialog.config = {
     title = "FloatTitle",
   },
 }
-
 local function create_buf()
   local buf = api.nvim_create_buf(false, true)
   -- Buffer options
@@ -61,21 +56,17 @@ local function create_buf()
   vim.bo[buf].swapfile = false
   vim.bo[buf].filetype = config.FILE_TYPE
   print("Created chat buffer with filetype:", vim.bo[buf].filetype)
-
   -- Add buffer-local completion mapping
   vim.keymap.set("i", "<C-x><C-o>", function()
     print("Manual completion triggered")
     require("blink.cmp").show()
   end, { buffer = buf, desc = "Trigger completion" })
-
   return buf
 end
-
 local function get_project_name()
   local cwd = vim.fn.getcwd()
   return vim.fn.fnamemodify(cwd, ":t")
 end
-
 local function selectProvider(callback)
   -- Directly use M.default_providers to ensure the data is correctly passed
   local provider_list = providers.default_providers
@@ -83,7 +74,6 @@ local function selectProvider(callback)
     print("No providers available.")
     return
   end
-
   fzf.fzf_exec(provider_list, {
     prompt = "Select a Provider> ",
     actions = {
@@ -96,7 +86,6 @@ local function selectProvider(callback)
     },
   })
 end
-
 local function selectModel(provider, callback)
   -- Safely get the provider configuration using M.get_provider
   local success, providerConfig = pcall(config.get_provider, provider)
@@ -104,14 +93,12 @@ local function selectModel(provider, callback)
     print("Provider not found in config.")
     return
   end
-
   -- Ensure the provider has the `models` key
   local models = providerConfig.models
   if not models or #models == 0 then
     print("No models available for the selected provider.")
     return
   end
-
   -- Proceed with the FZF selection if models exist
   fzf.fzf_exec(models, {
     prompt = "Select a Model> ",
@@ -125,7 +112,6 @@ local function selectModel(provider, callback)
     },
   })
 end
-
 local function generate_chat_filename()
   local project_name = get_project_name()
   local save_dir = config.config.saved_chats_dir .. "/" .. project_name
@@ -136,7 +122,6 @@ local function generate_chat_filename()
   local filename = save_dir .. "/chat_" .. timestamp .. ".md"
   return filename
 end
-
 function ChatDialog.save_file(skip_rename)
   if not (utils.state.buf and api.nvim_buf_is_valid(utils.state.buf)) then
     print("No valid chat buffer to save.")
@@ -146,7 +131,6 @@ function ChatDialog.save_file(skip_rename)
   -- Get raw buffer contents directly
   local lines = api.nvim_buf_get_lines(utils.state.buf, 0, -1, false)
   local content = table.concat(lines, "\n")
-
   -- Write to file
   local file = io.open(filename, "w")
   if file then
@@ -163,7 +147,6 @@ function ChatDialog.save_file(skip_rename)
     print("Failed to save chat to file: " .. filename)
   end
 end
-
 function ChatDialog.save_expanded_file()
   if not (utils.state.buf and api.nvim_buf_is_valid(utils.state.buf)) then
     print("No valid chat buffer to save.")
@@ -183,7 +166,6 @@ function ChatDialog.save_expanded_file()
     print("Failed to save chat to file: " .. filename)
   end
 end
-
 local function find_most_recent_chat_file()
   local project_name = get_project_name()
   local save_dir = config.config.saved_chats_dir .. "/" .. project_name
@@ -196,18 +178,15 @@ local function find_most_recent_chat_file()
   end
   return files[1] -- Return the most recent file, or nil if no files found
 end
-
 function ChatDialog.open()
   if utils.state.win and api.nvim_win_is_valid(utils.state.win) then
     api.nvim_set_current_win(utils.state.win)
     return
   end
-
   local file_to_load = utils.state.last_saved_file or find_most_recent_chat_file()
   if file_to_load then
     utils.state.buf = vim.fn.bufadd(file_to_load)
     vim.fn.bufload(utils.state.buf)
-
     -- Set buffer options for loaded file
     vim.bo[utils.state.buf].buftype = "nofile"
     vim.bo[utils.state.buf].bufhidden = "hide"
@@ -216,10 +195,8 @@ function ChatDialog.open()
   else
     utils.state.buf = utils.state.buf or create_buf()
   end
-
   local win_config = get_win_config()
   utils.state.win = api.nvim_open_win(utils.state.buf, true, win_config)
-
   -- Window-local options
   vim.wo[utils.state.win].number = false
   vim.wo[utils.state.win].relativenumber = false
@@ -229,17 +206,14 @@ function ChatDialog.open()
   vim.wo[utils.state.win].wrap = true
   vim.wo[utils.state.win].linebreak = true
   vim.wo[utils.state.win].cursorline = true
-
   -- Check if buffer is empty and initialize if needed
   local lines = api.nvim_buf_get_lines(utils.state.buf, 0, -1, false)
   if #lines == 0 or (#lines == 1 and lines[1] == "") then
     api.nvim_buf_set_lines(utils.state.buf, 0, -1, false, { "/user:", "", "" })
     api.nvim_win_set_cursor(utils.state.win, { 3, 0 })
   end
-
   api.nvim_set_current_win(utils.state.win)
 end
-
 function ChatDialog.close()
   if utils.state.win and api.nvim_win_is_valid(utils.state.win) then
     utils.stop_loading() -- Stop loading indicator when closing
@@ -247,7 +221,6 @@ function ChatDialog.close()
   end
   utils.state.win = nil
 end
-
 function ChatDialog.toggle()
   if utils.state.win and api.nvim_win_is_valid(utils.state.win) then
     ChatDialog.close()
@@ -255,14 +228,12 @@ function ChatDialog.toggle()
     ChatDialog.open()
   end
 end
-
 function ChatDialog.on_complete(t)
   message_handler.append_text(utils.state, "\n\n/user:\n")
   vim.schedule(function()
     ChatDialog.save_file()
   end)
 end
-
 function ChatDialog.UpdateProviderAndModel(callback)
   selectProvider(function(selectedProvider)
     selectModel(selectedProvider, function(selectedModel)
@@ -274,24 +245,19 @@ function ChatDialog.UpdateProviderAndModel(callback)
     end)
   end)
 end
-
 local function runChatProcess()
   local system_prompt = message_handler.get_system_prompt(utils.state)
   local chat_history = message_handler.get_chat_history(utils.state)
   local last_user_request = message_handler.last_user_request(utils.state)
-
   -- Save the expanded chat history before sending
   vim.schedule(function()
     ChatDialog.save_file(true) -- true to skip rename
   end)
-
   -- Send to provider
   local full_prompt = chat_history .. "\n/user:\n" .. last_user_request
-
   -- Start loading indicator before assistant line
   utils.start_loading(utils.state.win, utils.state.buf)
   message_handler.append_text(utils.state, "\n\n/assistant:\n")
-
   Assistant.ask(system_prompt, full_prompt, function(response)
     message_handler.append_text(utils.state, response)
   end, function()
@@ -299,7 +265,6 @@ local function runChatProcess()
     ChatDialog.on_complete()
   end)
 end
-
 function ChatDialog.send()
   if not utils.state.selectedProvider and not utils.state.current_model then
     -- Call updateProviderAndModel and pass runChatProcess as a callback
@@ -309,17 +274,14 @@ function ChatDialog.send()
     runChatProcess()
   end
 end
-
 -- Store and archive chat history file
 function ChatDialog.save_and_create_new()
   if not (utils.state.buf and api.nvim_buf_is_valid(utils.state.buf)) then
     print("No valid chat buffer to save.")
     return
   end
-
   -- Get current buffer contents and expand using the same logic as get_chat_history
   local chat_history = message_handler.get_chat_history(utils.state)
-
   -- Generate new filename and save expanded content
   local filename = generate_chat_filename()
   local file = io.open(filename, "w")
@@ -331,7 +293,6 @@ function ChatDialog.save_and_create_new()
     print("Failed to save chat to file: " .. filename)
     return
   end
-
   -- Create new empty buffer
   utils.state.buf = create_buf()
   if utils.state.win and api.nvim_win_is_valid(utils.state.win) then
@@ -339,11 +300,9 @@ function ChatDialog.save_and_create_new()
     api.nvim_buf_set_lines(utils.state.buf, 0, -1, false, { "/user:", "", "" })
     api.nvim_win_set_cursor(utils.state.win, { 3, 0 })
   end
-
   -- Reset last_saved_file since this is a new chat
   utils.state.last_saved_file = nil
 end
-
 function ChatDialog.clear()
   if utils.state.buf and api.nvim_buf_is_valid(utils.state.buf) then
     -- Save expanded version first
@@ -359,12 +318,10 @@ function ChatDialog.clear()
     utils.state.last_saved_file = nil
   end
 end
-
 function ChatDialog.setup()
   -- Add cancel keymap to config
   ChatDialog.config.keymaps = ChatDialog.config.keymaps or {}
   ChatDialog.config.keymaps.cancel = ChatDialog.config.keymaps.cancel or "<C-c>"
-
   -- Set up buffer-local keymap for cancellation
   vim.api.nvim_create_autocmd("FileType", {
     pattern = config.FILE_TYPE,
@@ -378,8 +335,10 @@ function ChatDialog.setup()
         -- Stop the loading spinner
         utils.stop_loading()
       end, { buffer = ev.buf, desc = "Cancel AI response" })
+      -- Register the completion source
+      local cmp = require("blink.cmp")
+      cmp.add_source(require("ai.completion").new())
     end,
   })
 end
-
 return ChatDialog

@@ -1,189 +1,103 @@
-local cmp = require("blink.cmp")
+-- Completion source for blink.cmp
+local M = {}
 local config = require("ai.config")
-local ChatDialog = require("ai.chat_dialog")
 local scan = require("plenary.scandir")
-local function is_chat_dialog_buf()
-  return vim.bo.filetype == config.FILE_TYPE
-end
-local function filter_files(files, exclude_patterns)
-  return vim.tbl_filter(function(file)
-    for _, pattern in ipairs(exclude_patterns) do
-      if file:match(vim.fn.glob2regpat(pattern)) then
-        return false
+local utils = require("ai.utils")
+local function get_buffers()
+  local buffers = {}
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf) then
+      local buf_name = vim.api.nvim_buf_get_name(buf)
+      if buf_name ~= "" then
+        table.insert(buffers, {
+          label = buf_name,
+          bufnr = buf,
+          kind = "buffer",
+        })
       end
     end
-    return true
-  end, files)
+  end
+  return buffers
 end
-local function get_cwd_files(context)
-  local cwd = context.opts.get_cwd(context)
+local function get_files()
   local files = {}
+  local cwd = vim.fn.getcwd()
   scan.scan_dir(cwd, {
     hidden = true,
     respect_gitignore = true,
     add_dirs = false,
     on_insert = function(file)
-      table.insert(files, file)
+      local relative_path = vim.fn.fnamemodify(file, ":.")
+      table.insert(files, {
+        label = relative_path,
+        file_path = file,
+        kind = "file",
+      })
     end,
   })
-  local exclude_patterns = config.get("file_completion").exclude_patterns
-  files = filter_files(files, exclude_patterns)
-  return vim.tbl_map(function(file)
-    return vim.fn.fnamemodify(file, ":.")
-  end, files)
+  return files
 end
-local function get_cwd_directories(context)
-  local cwd = context.opts.get_cwd(context)
+local function get_directories()
   local directories = {}
+  local cwd = vim.fn.getcwd()
   scan.scan_dir(cwd, {
     hidden = true,
     respect_gitignore = true,
     add_dirs = true,
     on_insert = function(dir)
+      local relative_path = vim.fn.fnamemodify(dir, ":.")
       if vim.fn.isdirectory(dir) == 1 then
-        table.insert(directories, dir)
+        table.insert(directories, {
+          label = relative_path,
+          dir_path = dir,
+          kind = "directory",
+        })
       end
     end,
   })
-  local exclude_patterns = config.get("file_completion").exclude_patterns
-  directories = filter_files(directories, exclude_patterns)
-  return vim.tbl_map(function(dir)
-    return vim.fn.fnamemodify(dir, ":.")
-  end, directories)
+  return directories
 end
-local function get_buffers()
-  local buffers = {}
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_get_name(buf) ~= "" then
-      local buf_name = vim.api.nvim_buf_get_name(buf)
-      table.insert(buffers, vim.fn.fnamemodify(buf_name, ":t"))
-    end
-  end
-  return buffers
-end
-local function create_completion_item(command, context, item)
+M.new = function()
   return {
-    label = item,
-    kind = command.kind,
-    detail = command.detail,
-    documentation = { kind = "markdown", value = command.doc },
-    insertText = item,
-    textEdit = {
-      newText = item,
-      range = {
-        start = { line = context.cursor[1] - 1, character = context.bounds.start_col - 1 },
-        ["end"] = { line = context.cursor[1] - 1, character = context.bounds.end_col },
-      },
-    },
-  }
-end
-local function get_completions(builtin_commands, dynamic_commands, ctx, callback)
-  local items = {}
-  local input = ctx:get_keyword()
-  for id, command in pairs(builtin_commands) do
-    if input:match("^" .. vim.pesc(command.label)) then
-      table.insert(items, create_completion_item(command, ctx, command.label))
-    end
-  end
-  for id, fn in pairs(dynamic_commands) do
-    if input:match("^" .. vim.pesc(id)) then
-      local dynamic_items = fn(ctx)
-      for _, item in ipairs(dynamic_items) do
-        table.insert(items, create_completion_item(builtin_commands[id:gsub("/", "")], ctx, item))
+    name = "nvim-ai",
+    priority = 100,
+    -- This is the function that will be called when the user types something
+    fetch = function(params)
+      local line = params.line
+      local before_cursor = line:sub(1, params.col - 1)
+      local trigger = before_cursor:match("(/%w+)$")
+      if not trigger then
+        return nil
       end
-    end
-  end
-  callback({ is_incomplete_forward = false, is_incomplete_backward = false, items = items })
-end
-local M = {}
-function M.setup()
-  cmp.setup({
-    sources = {
-      cmdline = function()
-        return {}
-      end, -- disable cmdline completions
-      default = function(ctx)
-        if not is_chat_dialog_buf() then
-          return {}
-        end
-        local builtin_commands = {
-          user = { label = "/user:", detail = "Start user message", doc = [[Start a new user message in the chat]] },
-          assistant = {
-            label = "/assistant:",
-            detail = "Start assistant message",
-            doc = [[Start a new assistant message in the chat]],
-          },
-          system = { label = "/system:", detail = "Set system prompt", doc = [[Set or change the system prompt]] },
-          file = {
-            label = "/file ",
-            detail = "Reference file",
-            kind = vim.lsp.protocol.CompletionItemKind.File,
-            doc = [[Reference a file from the current directory]],
-          },
-          dir = {
-            label = "/dir ",
-            detail = "Reference directory",
-            kind = vim.lsp.protocol.CompletionItemKind.Folder,
-            doc = [[Reference a directory from the current working directory]],
-          },
-          buf = {
-            label = "/buf ",
-            detail = "Reference buffer",
-            kind = vim.lsp.protocol.CompletionItemKind.Text,
-            doc = [[Reference content from currently open buffers]],
-          },
-        }
-        local dynamic_commands = {
-          ["/file "] = get_cwd_files,
-          ["/dir "] = get_cwd_directories,
-          ["/buf "] = get_buffers,
-        }
-        return {
-          {
-            name = "nvimai",
-            get_trigger_characters = function()
-              return { "/" }
-            end,
-            get_completions = function(ctx, callback)
-              get_completions(builtin_commands, dynamic_commands, ctx, callback)
-            end,
-            opts = {
-              get_cwd = function(context)
-                return vim.fn.expand(("#%d:p:h"):format(context.bufnr))
-              end,
-            },
-          },
-        }
-      end,
-    },
-    enabled = config.enabled,
-  })
-  -- Set up autocommands for chat dialog buffer
-  vim.api.nvim_create_autocmd("FileType", {
-    pattern = config.FILE_TYPE,
-    callback = function()
-      -- Set up keymaps for chat dialog
-      local keymaps = config.get("keymaps")
-      vim.keymap.set(
-        "n",
-        keymaps.send,
-        ChatDialog.send,
-        { noremap = true, silent = true, buffer = true, desc = "Send Message" }
-      )
-      vim.keymap.set(
-        "n",
-        keymaps.close,
-        ChatDialog.close,
-        { noremap = true, silent = true, buffer = true, desc = "Close Chat Dialog" }
-      )
-      vim.keymap.set(
-        "n",
-        keymaps.clear,
-        ChatDialog.clear,
-        { noremap = true, silent = true, buffer = true, desc = "Clear Chat" }
-      )
+      local items = {}
+      if trigger == "/file" then
+        items = get_files()
+      elseif trigger == "/buf" then
+        items = get_buffers()
+      elseif trigger == "/dir" then
+        items = get_directories()
+      end
+      return items
     end,
-  })
-  return {}
+    -- This is the function that will be called when the user selects an item
+    on_resolve = function(params, item)
+      local line = params.line
+      local before_cursor = line:sub(1, params.col - 1)
+      local trigger = before_cursor:match("(/%w+)$")
+      local replacement = ""
+      if item.kind == "file" then
+        replacement = "/file " .. item.label
+      elseif item.kind == "buffer" then
+        replacement = "/buf " .. item.bufnr
+      elseif item.kind == "directory" then
+        replacement = "/dir " .. item.label
+      end
+      return {
+        text = replacement,
+        -- Move the cursor to the end of the replacement
+        cursor_pos = #replacement + 1,
+      }
+    end,
+  }
 end
 return M

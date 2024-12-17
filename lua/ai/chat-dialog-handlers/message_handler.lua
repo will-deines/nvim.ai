@@ -33,17 +33,6 @@ function M.append_text(state, text)
     if #new_lines > 1 then
       api.nvim_buf_set_lines(state.buf, -1, -1, false, { unpack(new_lines, 2) })
     end
-    -- Identify code blocks and insert inline commands
-    local in_code_block = false
-    for i, line in ipairs(new_lines) do
-      if line:match("^```") then
-        if in_code_block then
-          in_code_block = false
-        else
-          in_code_block = true
-        end
-      end
-    end
     -- Scroll to bottom
     if state.win and api.nvim_win_is_valid(state.win) then
       local new_last_line = api.nvim_buf_line_count(state.buf)
@@ -73,8 +62,6 @@ function M.get_chat_history(state)
         table.insert(chat_history, current_entry)
       end
       current_entry = line
-    elseif line:match("^/model%s+(.+)") then
-      -- Skip /model command in chat history
     elseif line:match("^/buf%s+(%d+)") then
       local bufnr = tonumber(line:match("^/buf%s+(%d+)"))
       if vim.api.nvim_buf_is_valid(bufnr) then

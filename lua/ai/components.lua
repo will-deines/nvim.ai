@@ -17,18 +17,6 @@ local core_components = {
     end,
   },
   {
-    name = "providers",
-    setup = function()
-      return require("ai.providers").setup()
-    end,
-  },
-  {
-    name = "completion",
-    setup = function(opts)
-      return require("ai.completion").setup(opts)
-    end,
-  },
-  {
     name = "keymaps",
     setup = function()
       return require("ai.keymaps").setup()
