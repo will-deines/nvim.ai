@@ -4,7 +4,6 @@ local Completion = {}
 local Events = require("ai.events")
 local Config = require("ai.completion.config")
 local Commands = require("ai.completion.commands")
-local Source = require("ai.completion.source")
 
 --- Setup completion functionality
 --- @param opts table Plugin options
