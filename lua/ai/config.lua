@@ -183,62 +183,21 @@ end
 function M.get(what)
   return M.config[what]
 end
+
 function M.setup_cmp()
   vim.defer_fn(function()
-    local cmp = require("blink.cmp")
-    if cmp and cmp.setup then
-      cmp.setup({
-        snippets = {
-          expand = function(snippet, _)
-            return LazyVim.cmp.expand(snippet)
-          end,
-        },
-        appearance = {
-          -- sets the fallback highlight groups to nvim-cmp's highlight groups
-          -- useful for when your theme doesn't support blink.cmp
-          -- will be removed in a future release, assuming themes add support
-          use_nvim_cmp_as_default = false,
-          -- set to 'mono' for 'Nerd Font Mono' or 'normal' for 'Nerd Font'
-          -- adjusts spacing to ensure icons are aligned
-          nerd_font_variant = "mono",
-        },
-        completion = {
-          accept = {
-            -- experimental auto-brackets support
-            auto_brackets = {
-              enabled = true,
-            },
-          },
-          menu = {
-            draw = {
-              treesitter = { "lsp" },
-            },
-          },
-          documentation = {
-            auto_show = true,
-            auto_show_delay_ms = 200,
-          },
-          ghost_text = {
-            enabled = vim.g.ai_cmp,
-          },
-        },
-        -- experimental signature help support
-        -- signature = { enabled = true },
-        sources = {
-          -- adding any nvim-cmp sources here will enable them
-          -- with blink.compat
-          compat = {},
-          default = { "lsp", "path", "snippets", "buffer" },
-          cmdline = {},
-        },
-        keymap = {
-          preset = "enter",
-          ["<C-y>"] = { "select_and_accept" },
-        },
-      })
-    else
+    local ok, cmp = pcall(require, "blink.cmp")
+    if not ok then
       vim.notify("blink.cmp not available", vim.log.levels.ERROR)
+      return
     end
+
+    cmp.setup({
+      completion = {
+        ghost_text = { enabled = true },
+        documentation = { enabled = true },
+      },
+    })
   end, 0)
 end
 return M

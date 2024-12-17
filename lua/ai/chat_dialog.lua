@@ -58,13 +58,12 @@ local function create_buf()
   print("Created chat buffer with filetype:", vim.bo[buf].filetype)
   -- Add buffer-local completion mapping
   vim.keymap.set("i", "<C-x><C-o>", function()
-    print("Manual completion triggered")
-    local cmp = require("blink.cmp")
-    if cmp and cmp.show then
-      cmp.show()
-    else
-      print("blink.cmp not available")
+    local ok, cmp = pcall(require, "blink.cmp")
+    if not ok then
+      vim.notify("blink.cmp not available", vim.log.levels.ERROR)
+      return
     end
+    cmp.show()
   end, { buffer = buf, desc = "Trigger completion" })
   return buf
 end
