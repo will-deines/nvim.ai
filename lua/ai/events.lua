@@ -1,6 +1,7 @@
+--- Event system for plugin coordination
 --- @class AIEvents
---- @field emitters table<string, fun(data: table)[]>
---- @field registered_events string[]
+--- @field private emitters table<string, fun(data: table)[]>
+--- @field private registered_events string[]
 local Events = {
   emitters = {},
   registered_events = {
@@ -23,7 +24,8 @@ local Events = {
     "test_completion_start",
     "test_completion_end",
 
-    -- Completion debugging
+    -- Debug events
+    "debug_log",
     "debug_completion",
 
     -- Cache events
@@ -42,12 +44,11 @@ local Events = {
 }
 
 --- Register an event handler
---- @param event string
---- @param callback fun(data: table)
+--- @param event string Event name or "*" for all events
+--- @param callback fun(data: table) Handler function
 function Events.on(event, callback)
-  -- Allow wildcard "*" event
+  -- Handle wildcard subscription
   if event == "*" then
-    -- Register callback for all events
     for _, registered_event in ipairs(Events.registered_events) do
       Events.on(registered_event, callback)
     end
@@ -63,8 +64,6 @@ function Events.on(event, callback)
 
   -- Initialize emitters table for this event
   Events.emitters[event] = Events.emitters[event] or {}
-
-  -- Add callback
   table.insert(Events.emitters[event], callback)
 end
 
@@ -79,27 +78,30 @@ function Events.emit(event, data)
     )
   end
 
-  -- Get emitters for this event
-  local event_emitters = Events.emitters[event] or {}
-
-  -- Add timestamp and event name to data
+  -- Prepare event data
   data = data or {}
   data.timestamp = vim.fn.strftime("%Y-%m-%d %H:%M:%S")
   data.event = event
 
+  -- Get handlers for this event
+  local handlers = Events.emitters[event] or {}
+
   -- Schedule event emission to avoid blocking
   vim.schedule(function()
     -- Emit event to all registered handlers
-    for _, callback in ipairs(event_emitters) do
+    for _, callback in ipairs(handlers) do
       local ok, err = pcall(callback, data)
       if not ok then
         vim.notify(string.format("Error in event handler for %s: %s", event, err), vim.log.levels.ERROR)
       end
     end
 
-    -- Log event if debug is enabled
+    -- Log debug event if enabled
     if vim.g.nvimai_debug then
-      vim.notify(string.format("Event emitted: %s\nData: %s", event, vim.inspect(data)), vim.log.levels.DEBUG)
+      Events.emit("debug_log", {
+        message = string.format("Event emitted: %s", event),
+        data = data,
+      })
     end
   end)
 end
@@ -115,13 +117,13 @@ function Events.off(event, callback)
     )
   end
 
-  -- Get emitters for this event
-  local event_emitters = Events.emitters[event] or {}
+  -- Get handlers for this event
+  local handlers = Events.emitters[event] or {}
 
-  -- Remove callback
-  for i, registered_callback in ipairs(event_emitters) do
+  -- Remove matching callback
+  for i, registered_callback in ipairs(handlers) do
     if registered_callback == callback then
-      table.remove(event_emitters, i)
+      table.remove(handlers, i)
       break
     end
   end
@@ -148,15 +150,15 @@ function Events.setup(opts)
 
   -- Setup debug logging if enabled
   if vim.g.nvimai_debug then
-    -- Instead of using "*", create a handler for each event
-    for _, event in ipairs(Events.registered_events) do
-      Events.on(event, function(data)
-        -- Log to file
-        local log_path = vim.fn.stdpath("cache") .. "/nvimai.log"
-        local log = string.format("[%s] %s: %s\n", data.timestamp, data.event, vim.inspect(data))
-        vim.fn.writefile({ log }, log_path, "a")
-      end)
+    -- Create log file handler
+    local function log_to_file(data)
+      local log_path = vim.fn.stdpath("cache") .. "/nvimai.log"
+      local log = string.format("[%s] %s: %s\n", data.timestamp, data.event, vim.inspect(data))
+      vim.fn.writefile({ log }, log_path, "a")
     end
+
+    -- Register handler for debug_log event
+    Events.on("debug_log", log_to_file)
   end
 end
 
