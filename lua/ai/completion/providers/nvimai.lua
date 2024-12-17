@@ -2,9 +2,13 @@
 return {
   name = "NvimAI",
   module = "ai.completion.source",
-
   enabled = function(ctx)
-    local is_enabled = vim.bo[ctx.bufnr].filetype == "chat-dialog"
+    -- Add nil check for ctx
+    if not ctx then
+      return false
+    end
+
+    local is_enabled = vim.bo[ctx.bufnr or 0].filetype == "chat-dialog"
     require("ai.events").emit("provider_status", {
       name = "nvimai",
       enabled = is_enabled,

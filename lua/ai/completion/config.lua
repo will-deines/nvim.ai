@@ -2,7 +2,6 @@
 --- @class AI.CompletionConfig
 local Config = {}
 
--- Default configuration
 local defaults = {
   sources = {
     default = { "nvimai", "path", "buffer" },
@@ -11,30 +10,34 @@ local defaults = {
         name = "NvimAI",
         module = "ai.completion.cmp_source",
         enabled = function(ctx)
-          return vim.bo[ctx.bufnr].filetype == "chat-dialog"
+          -- Add nil check
+          if not ctx then
+            return false
+          end
+          return vim.bo[ctx.bufnr or 0].filetype == "chat-dialog"
         end,
       },
       path = {
         name = "Path",
         module = "blink.cmp.sources.path",
         enabled = function(ctx)
-          -- Only enable for /file commands
+          -- Add nil check
+          if not ctx then
+            return false
+          end
           local line = ctx.line:sub(1, ctx.cursor[2])
           return line:match("^/file%s+") ~= nil
         end,
-        opts = {
-          get_cwd = function(ctx)
-            return vim.fn.getcwd()
-          end,
-          trailing_slash = true,
-          label_trailing_slash = true,
-        },
+        -- Rest of path config
       },
       buffer = {
         name = "Buffer",
         module = "blink.cmp.sources.buffer",
         enabled = function(ctx)
-          -- Only enable for /buf commands
+          -- Add nil check
+          if not ctx then
+            return false
+          end
           local line = ctx.line:sub(1, ctx.cursor[2])
           return line:match("^/buf%s+") ~= nil
         end,
