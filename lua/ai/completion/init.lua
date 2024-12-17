@@ -4,10 +4,8 @@ local Completion = {}
 local Events = require("ai.events")
 local Config = require("ai.completion.config")
 local Commands = require("ai.completion.commands")
-
 function Completion.setup(opts)
   Events.emit("completion_setup_start")
-
   local ok, err = Completion._validate_dependencies()
   if not ok then
     Events.emit("completion_setup_failed", {
@@ -16,16 +14,13 @@ function Completion.setup(opts)
     })
     return
   end
-
   local setup_result = Completion._setup_components(opts)
   if not setup_result.success then
     Events.emit("completion_setup_failed", setup_result)
     return
   end
-
   Events.emit("completion_setup_success")
 end
-
 function Completion._validate_dependencies()
   local plugin_config = require("lazy.core.config").plugins["blink.cmp"]
   if not plugin_config then
@@ -33,12 +28,12 @@ function Completion._validate_dependencies()
   end
   return true
 end
-
 function Completion._setup_components(opts)
   local ok, err = pcall(function()
     Config.setup(opts)
     Commands.setup()
     local completion_config = Config.get()
+    require("ai.utils").debug("blink.cmp config: " .. vim.inspect(completion_config), { title = "NvimAI Completion" })
     require("blink.cmp").setup(completion_config)
   end)
   if not ok then
@@ -50,5 +45,4 @@ function Completion._setup_components(opts)
   end
   return { success = true }
 end
-
 return Completion
