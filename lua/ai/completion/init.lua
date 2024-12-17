@@ -34,6 +34,15 @@ function Completion._setup_components(opts)
     Commands.setup()
     local completion_config = Config.get()
     require("ai.utils").debug("blink.cmp config: " .. vim.inspect(completion_config), { title = "NvimAI Completion" })
+    local providers = {}
+    for name, provider in pairs(completion_config.sources.providers) do
+      if type(provider) == "function" then
+        providers[name] = provider()
+      else
+        providers[name] = provider
+      end
+    end
+    completion_config.sources.providers = providers
     require("blink.cmp").setup(completion_config)
   end)
   if not ok then

@@ -5,21 +5,11 @@ local defaults = {
   sources = {
     default = { "nvimai" },
     providers = {
-      nvimai = {
-        name = "nvimai",
-        module = "ai.completion.cmp_source",
-        enabled = function(ctx)
-          if not ctx then
-            return false
-          end
-          local is_enabled = vim.bo[ctx.bufnr or 0].filetype == "chat-dialog"
-          require("ai.utils").debug(
-            "Completion source enabled check: " .. tostring(is_enabled),
-            { title = "NvimAI Completion" }
-          )
-          return is_enabled
-        end,
-      },
+      nvimai = function()
+        local source = require("ai.completion.cmp_source")
+        require("ai.utils").debug("Loading completion source: NvimAI", { title = "NvimAI Completion" })
+        return source
+      end,
     },
   },
 }
