@@ -148,13 +148,15 @@ function Events.setup(opts)
 
   -- Setup debug logging if enabled
   if vim.g.nvimai_debug then
-    Events.on("*", function(data)
-      -- Log to file
-      local log_path = vim.fn.stdpath("cache") .. "/nvimai.log"
-      local log = string.format("[%s] %s: %s\n", data.timestamp, data.event, vim.inspect(data))
-
-      vim.fn.writefile({ log }, log_path, "a")
-    end)
+    -- Instead of using "*", create a handler for each event
+    for _, event in ipairs(Events.registered_events) do
+      Events.on(event, function(data)
+        -- Log to file
+        local log_path = vim.fn.stdpath("cache") .. "/nvimai.log"
+        local log = string.format("[%s] %s: %s\n", data.timestamp, data.event, vim.inspect(data))
+        vim.fn.writefile({ log }, log_path, "a")
+      end)
+    end
   end
 end
 
