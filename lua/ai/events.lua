@@ -8,34 +8,27 @@ local Events = {
     -- Plugin lifecycle
     "plugin_setup_start",
     "plugin_setup_complete",
-
     -- Completion setup
     "completion_setup_start",
     "completion_setup_success",
     "completion_setup_failed",
-
     -- Completion lifecycle
     "completion_show",
     "completion_hide",
     "completion_accept",
     "completion_cancel",
-
     -- Completion testing
     "test_completion_start",
     "test_completion_end",
-
     -- Debug events
     "debug_log",
     "debug_completion",
-
     -- Cache events
     "cache_clear",
     "cache_hit",
     "cache_miss",
-
     -- Error events
     "completion_error",
-
     -- Source events
     "source_register",
     "source_unregister",
@@ -96,12 +89,9 @@ function Events.emit(event, data)
       end
     end
 
-    -- Log debug event if enabled
-    if vim.g.nvimai_debug then
-      Events.emit("debug_log", {
-        message = string.format("Event emitted: %s", event),
-        data = data,
-      })
+    -- Log debug event directly without recursion
+    if vim.g.nvimai_debug and event ~= "debug_log" then
+      vim.notify(string.format("[Event] %s: %s", event, vim.inspect(data)), vim.log.levels.DEBUG)
     end
   end)
 end
@@ -147,19 +137,6 @@ end
 function Events.setup(opts)
   opts = opts or {}
   vim.g.nvimai_debug = opts.debug or false
-
-  -- Setup debug logging if enabled
-  if vim.g.nvimai_debug then
-    -- Create log file handler
-    local function log_to_file(data)
-      local log_path = vim.fn.stdpath("cache") .. "/nvimai.log"
-      local log = string.format("[%s] %s: %s\n", data.timestamp, data.event, vim.inspect(data))
-      vim.fn.writefile({ log }, log_path, "a")
-    end
-
-    -- Register handler for debug_log event
-    Events.on("debug_log", log_to_file)
-  end
 end
 
 return Events
