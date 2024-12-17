@@ -8,6 +8,15 @@ local Events = {
     -- Plugin lifecycle
     "plugin_setup_start",
     "plugin_setup_complete",
+    -- Component lifecycle
+    "component_setup_start",
+    "component_setup_success",
+    "component_setup_failed",
+    -- Command events
+    "command_setup_failed",
+    -- Provider events
+    "provider_status",
+    "provider_transform",
     -- Completion setup
     "completion_setup_start",
     "completion_setup_success",
@@ -23,6 +32,8 @@ local Events = {
     -- Debug events
     "debug_log",
     "debug_completion",
+    "debug_command_error",
+    "debug_info_collected",
     -- Cache events
     "cache_clear",
     "cache_hit",
@@ -33,6 +44,12 @@ local Events = {
     "source_register",
     "source_unregister",
     "source_reload",
+    -- Keymap events
+    "keymap_setup_start",
+    "keymap_setup_complete",
+    "keymap_error",
+    -- Treesitter events
+    "treesitter_error",
   },
 }
 
@@ -47,14 +64,12 @@ function Events.on(event, callback)
     end
     return
   end
-
   -- Validate event name
   if not vim.tbl_contains(Events.registered_events, event) then
     error(
       string.format("Invalid event name: %s. Valid events are: %s", event, table.concat(Events.registered_events, ", "))
     )
   end
-
   -- Initialize emitters table for this event
   Events.emitters[event] = Events.emitters[event] or {}
   table.insert(Events.emitters[event], callback)
@@ -85,13 +100,19 @@ function Events.emit(event, data)
     for _, callback in ipairs(handlers) do
       local ok, err = pcall(callback, data)
       if not ok then
+        -- Log errors directly instead of emitting events
         vim.notify(string.format("Error in event handler for %s: %s", event, err), vim.log.levels.ERROR)
       end
     end
 
-    -- Log debug event directly without recursion
-    if vim.g.nvimai_debug and event ~= "debug_log" then
-      vim.notify(string.format("[Event] %s: %s", event, vim.inspect(data)), vim.log.levels.DEBUG)
+    -- Log debug info directly to vim.notify instead of emitting another event
+    if vim.g.nvimai_debug then
+      -- Use direct logging instead of event emission
+      local debug_msg = string.format("[Event] %s", event)
+      if type(data) == "table" then
+        debug_msg = debug_msg .. ": " .. vim.inspect(data)
+      end
+      vim.notify(debug_msg, vim.log.levels.DEBUG)
     end
   end)
 end
@@ -106,10 +127,8 @@ function Events.off(event, callback)
       string.format("Invalid event name: %s. Valid events are: %s", event, table.concat(Events.registered_events, ", "))
     )
   end
-
   -- Get handlers for this event
   local handlers = Events.emitters[event] or {}
-
   -- Remove matching callback
   for i, registered_callback in ipairs(handlers) do
     if registered_callback == callback then
