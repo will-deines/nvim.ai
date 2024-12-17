@@ -14,16 +14,7 @@ local defaults = {
   -- Source configuration
   sources = {
     -- Source selection logic
-    default = function(ctx)
-      if not ctx or not ctx.bufnr then
-        return {}
-      end
-      local ft = vim.bo[ctx.bufnr].filetype
-      if ft == "chat-dialog" then
-        return { "nvimai", "path", "buffer" }
-      end
-      return {}
-    end,
+    default = { "path", "buffer", "nvimai" },
     -- Provider definitions
     providers = {
       nvimai = {
@@ -46,18 +37,13 @@ local defaults = {
       path = {
         name = "Path",
         module = "blink.cmp.sources.path",
-        score_offset = function()
-          return 3
-        end,
+        enabled = true,
         opts = {
-          completion = {
-            keyword_pattern = [[\%(\/file\s\+\|\/dir\s\+\)\zs[^[:space:]*]],
-            trigger = {
-              characters = { "/", " " },
-              show_on_keyword = true,
-              show_on_trigger_character = true,
-            },
-          },
+          get_cwd = function(ctx)
+            return vim.fn.getcwd()
+          end,
+          trailing_slash = true,
+          label_trailing_slash = true,
         },
       },
       buffer = {
