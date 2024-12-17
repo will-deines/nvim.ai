@@ -4,40 +4,24 @@ local Config = {}
 
 -- Default configuration
 local defaults = {
-  enabled = function()
-    return true
-  end,
-  -- Core completion behavior
-  completion = {
-    -- ... (keep all the completion config from before)
-  },
-  -- Source configuration
   sources = {
-    -- Source selection logic
-    default = { "path", "buffer", "nvimai" },
-    -- Provider definitions
+    default = { "nvimai", "path", "buffer" },
     providers = {
       nvimai = {
         name = "NvimAI",
-        module = "ai.completion.cmp_source", -- Point to our source file
+        module = "ai.completion.cmp_source",
         enabled = function(ctx)
           return vim.bo[ctx.bufnr].filetype == "chat-dialog"
         end,
-        async = false,
-        timeout_ms = 1000,
-        transform_items = function(ctx, items)
-          return items
-        end,
-        should_show_items = true,
-        max_items = 200,
-        min_keyword_length = 1,
-        fallbacks = {},
-        score_offset = 0,
       },
       path = {
         name = "Path",
         module = "blink.cmp.sources.path",
-        enabled = true,
+        enabled = function(ctx)
+          -- Only enable for /file commands
+          local line = ctx.line:sub(1, ctx.cursor[2])
+          return line:match("^/file%s+") ~= nil
+        end,
         opts = {
           get_cwd = function(ctx)
             return vim.fn.getcwd()
@@ -49,16 +33,11 @@ local defaults = {
       buffer = {
         name = "Buffer",
         module = "blink.cmp.sources.buffer",
-        opts = {
-          completion = {
-            keyword_pattern = [[\%(\/buf\s\+\)\zs[^[:space:]*]],
-            trigger = {
-              characters = { "/", " " },
-              show_on_keyword = true,
-              show_on_trigger_character = true,
-            },
-          },
-        },
+        enabled = function(ctx)
+          -- Only enable for /buf commands
+          local line = ctx.line:sub(1, ctx.cursor[2])
+          return line:match("^/buf%s+") ~= nil
+        end,
       },
     },
   },
