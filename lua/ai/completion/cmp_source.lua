@@ -8,6 +8,26 @@ local source = require("ai.completion.source_builder")
   :with_command("file", "/file ", "Reference file", [[Reference a file from the current directory]])
   :with_command("buf", "/buf ", "Reference buffer", [[Reference content from currently open buffers]])
   :with_command("dir", "/dir ", "Reference directory", [[Reference a directory from the current working directory]])
+  :with_dynamic_completion("/file", function()
+    local files = vim.fn.glob(vim.fn.getcwd() .. "/*", true, true)
+    return vim.tbl_filter(function(file)
+      return vim.fn.isdirectory(file) == 0
+    end, files)
+  end)
+  :with_dynamic_completion("/dir", function()
+    local files = vim.fn.glob(vim.fn.getcwd() .. "/*", true, true)
+    return vim.tbl_filter(function(file)
+      return vim.fn.isdirectory(file) == 1
+    end, files)
+  end)
+  :with_dynamic_completion("/buf", function()
+    local buffers = {}
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_loaded(buf) then
+        table.insert(buffers, vim.api.nvim_buf_get_name(buf))
+      end
+    end
+    return buffers
+  end)
   :build()
-
 return source

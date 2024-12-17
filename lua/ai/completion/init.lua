@@ -5,12 +5,9 @@ local Events = require("ai.events")
 local Config = require("ai.completion.config")
 local Commands = require("ai.completion.commands")
 
---- Setup completion functionality
---- @param opts table Plugin options
 function Completion.setup(opts)
   Events.emit("completion_setup_start")
 
-  -- Validate blink.cmp is available
   local ok, err = Completion._validate_dependencies()
   if not ok then
     Events.emit("completion_setup_failed", {
@@ -20,7 +17,6 @@ function Completion.setup(opts)
     return
   end
 
-  -- Setup components
   local setup_result = Completion._setup_components(opts)
   if not setup_result.success then
     Events.emit("completion_setup_failed", setup_result)
@@ -32,23 +28,19 @@ end
 
 function Completion._validate_dependencies()
   local plugin_config = require("lazy.core.config").plugins["blink.cmp"]
-  if not plugin_config or not plugin_config.opts then
-    return false, "blink.cmp config not found"
+  if not plugin_config then
+    return false, "blink.cmp plugin not found"
   end
   return true
 end
 
 function Completion._setup_components(opts)
-  -- Setup completion config
   local ok, err = pcall(function()
     Config.setup(opts)
     Commands.setup()
-
-    -- Merge completion config
     local completion_config = Config.get()
     require("blink.cmp").setup(completion_config)
   end)
-
   if not ok then
     return {
       success = false,
@@ -56,7 +48,6 @@ function Completion._setup_components(opts)
       error = err,
     }
   end
-
   return { success = true }
 end
 
