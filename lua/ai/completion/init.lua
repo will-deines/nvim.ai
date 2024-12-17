@@ -43,7 +43,10 @@ function Completion._setup_components(opts)
   local ok, err = pcall(function()
     Config.setup(opts)
     Commands.setup()
-    require("blink.cmp.config").merge_with(Config.get())
+
+    -- Merge completion config
+    local completion_config = Config.get()
+    require("blink.cmp").setup(completion_config)
   end)
 
   if not ok then
