@@ -1,9 +1,7 @@
 local M = {}
-
 M.BASE_PROVIDER_KEYS =
   { "endpoint", "models", "local", "deployment", "api_version", "proxy", "allow_insecure", "max_tokens", "stream" }
 M.FILE_TYPE = "chat-dialog"
-
 -- Add this near the top of the file, after the local M = {} line
 local function read_file(path)
   local file = io.open(path, "r")
@@ -14,7 +12,6 @@ local function read_file(path)
   file:close()
   return content
 end
-
 -- Default configuration
 M.defaults = {
   file_completion = {
@@ -32,7 +29,6 @@ M.defaults = {
     respect_gitignore = true,
     debug = false,
   },
-
   debug = true,
   -- Chat Dialog UI configuration
   ui = {
@@ -45,7 +41,6 @@ M.defaults = {
     },
     prompt_prefix = "❯ ", -- Prefix for the input prompt
   },
-
   -- LLM configuration
   provider = "openai",
   model = "gpt-4o",
@@ -126,7 +121,6 @@ M.defaults = {
     rep_pen_slope = 1,
     ["local"] = true,
   },
-
   ollama = {
     endpoint = "http://localhost:11434",
     model = "gemma2",
@@ -134,11 +128,8 @@ M.defaults = {
     max_tokens = 4096,
     ["local"] = true,
   },
-
   vendors = {},
-
   saved_chats_dir = vim.fn.stdpath("data") .. "/nvim.ai/saved_chats",
-
   -- Keymaps
   keymaps = {
     toggle = "<leader>1", -- Toggle chat dialog
@@ -147,14 +138,12 @@ M.defaults = {
     close = "q", -- Close chat dialog
     clear = "<C-l>", -- Clear chat history
   },
-
   -- Behavior
   behavior = {
     auto_open = true, -- Automatically open dialog when sending a message
     save_history = true, -- Save chat history between sessions
     history_dir = vim.fn.stdpath("data"), -- Path to save chat history
   },
-
   -- TODO: Appearance
   appearance = {
     icons = {
@@ -166,11 +155,9 @@ M.defaults = {
     syntax_highlight = true, -- Syntax highlight code in responses
   },
 }
-
 M.has_provider = function(provider)
   return M.config[provider] ~= nil or M.vendors[provider] ~= nil
 end
-
 M.get_provider = function(provider)
   if M.config[provider] ~= nil then
     return vim.deepcopy(M.config[provider], true)
@@ -180,15 +167,12 @@ M.get_provider = function(provider)
     error("Failed to find provider: " .. provider, 2)
   end
 end
-
 -- Function to merge user config with defaults
 function M.setup(user_config)
   M.config = vim.tbl_deep_extend("force", M.defaults, user_config or {})
-
   -- Validate configuration
   assert(M.config.ui.side == "left" or M.config.ui.side == "right", "UI side must be 'left' or 'right'")
   assert(type(M.config.ui.width) == "number", "UI width must be a number")
-
   -- Set up API key
   -- if not M.config.llm.api_key then
   --   local env_var = M.config.llm.provider == "openai" and "OPENAI_API_KEY" or "ANTHROPIC_API_KEY"
@@ -196,9 +180,63 @@ function M.setup(user_config)
   --   assert(M.config.llm.api_key, env_var .. " environment variable not set")
   -- end
 end
-
 function M.get(what)
   return M.config[what]
 end
-
+function M.setup_cmp()
+  local cmp = require("blink.cmp")
+  if cmp and cmp.setup then
+    cmp.setup({
+      snippets = {
+        expand = function(snippet, _)
+          return LazyVim.cmp.expand(snippet)
+        end,
+      },
+      appearance = {
+        -- sets the fallback highlight groups to nvim-cmp's highlight groups
+        -- useful for when your theme doesn't support blink.cmp
+        -- will be removed in a future release, assuming themes add support
+        use_nvim_cmp_as_default = false,
+        -- set to 'mono' for 'Nerd Font Mono' or 'normal' for 'Nerd Font'
+        -- adjusts spacing to ensure icons are aligned
+        nerd_font_variant = "mono",
+      },
+      completion = {
+        accept = {
+          -- experimental auto-brackets support
+          auto_brackets = {
+            enabled = true,
+          },
+        },
+        menu = {
+          draw = {
+            treesitter = { "lsp" },
+          },
+        },
+        documentation = {
+          auto_show = true,
+          auto_show_delay_ms = 200,
+        },
+        ghost_text = {
+          enabled = vim.g.ai_cmp,
+        },
+      },
+      -- experimental signature help support
+      -- signature = { enabled = true },
+      sources = {
+        -- adding any nvim-cmp sources here will enable them
+        -- with blink.compat
+        compat = {},
+        default = { "lsp", "path", "snippets", "buffer" },
+        cmdline = {},
+      },
+      keymap = {
+        preset = "enter",
+        ["<C-y>"] = { "select_and_accept" },
+      },
+    })
+  else
+    print("blink.cmp not available")
+  end
+end
 return M
