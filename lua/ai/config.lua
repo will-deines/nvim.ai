@@ -105,12 +105,29 @@ M.defaults = {
   },
   gemini = {
     endpoint = "https://generativelanguage.googleapis.com",
-    models = { "gemini-2.0-flash-exp", "gemini-1.5-pro-latest" },
-    temperature = 0.1,
-    maxOutputTokens = 8192,
-    topP = 1.0,
-    topK = nil, -- Set if applicable
-    stream = true,
+    models = {
+      "gemini-1.5-pro-latest",
+      "gemini-1.5-flash-latest",
+      "gemini-2.0-flash-exp",
+    },
+    generationConfig = {
+      maxOutputTokens = {
+        ["gemini-1.5-pro-latest"] = 8192,
+        ["gemini-1.5-flash-latest"] = 8192,
+        ["gemini-2.0-flash-exp"] = 8192,
+      },
+      temperature = 0.1,
+      topP = 1.0,
+      topK = 40,
+    },
+    safetySettings = {
+      -- Optional safety settings as per API docs
+      -- HARM_CATEGORY_HARASSMENT = "BLOCK_NONE",
+      -- HARM_CATEGORY_HATE_SPEECH = "BLOCK_NONE",
+      -- HARM_CATEGORY_SEXUALLY_EXPLICIT = "BLOCK_NONE",
+      -- HARM_CATEGORY_DANGEROUS_CONTENT = "BLOCK_NONE"
+    },
+    stream = false,
     ["local"] = false,
   },
   kobold = {
