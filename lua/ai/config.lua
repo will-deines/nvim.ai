@@ -29,7 +29,7 @@ M.defaults = {
     respect_gitignore = true,
     debug = false,
   },
-  debug = false,
+  debug = true,
   -- Chat Dialog UI configuration
   ui = {
     width = 80, -- Width of the chat dialog window
@@ -184,7 +184,7 @@ function M.get(what)
   return M.config[what]
 end
 function M.setup_cmp()
-  vim.schedule(function()
+  vim.defer_fn(function()
     local cmp = require("blink.cmp")
     if cmp and cmp.setup then
       cmp.setup({
@@ -239,6 +239,6 @@ function M.setup_cmp()
     else
       vim.notify("blink.cmp not available", vim.log.levels.ERROR)
     end
-  end)
+  end, 0)
 end
 return M
