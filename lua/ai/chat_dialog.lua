@@ -59,7 +59,12 @@ local function create_buf()
   -- Add buffer-local completion mapping
   vim.keymap.set("i", "<C-x><C-o>", function()
     print("Manual completion triggered")
-    require("blink.cmp").show()
+    local cmp = require("blink.cmp")
+    if cmp and cmp.show then
+      cmp.show()
+    else
+      print("blink.cmp not available")
+    end
   end, { buffer = buf, desc = "Trigger completion" })
   return buf
 end
@@ -337,7 +342,11 @@ function ChatDialog.setup()
       end, { buffer = ev.buf, desc = "Cancel AI response" })
       -- Register the completion source
       local cmp = require("blink.cmp")
-      cmp.add_source(require("ai.completion").new())
+      if cmp and cmp.add_source then
+        cmp.add_source(require("ai.completion").new())
+      else
+        print("blink.cmp not available")
+      end
     end,
   })
 end
