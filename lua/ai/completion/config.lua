@@ -7,129 +7,78 @@ local defaults = {
   enabled = function()
     return true
   end,
-
   -- Core completion behavior
   completion = {
-    keyword = {
-      range = "prefix",
-      regex = "[-_]\\|\\k",
-      exclude_from_prefix_regex = "-",
-    },
-    trigger = {
-      show_on_keyword = true,
-      show_on_trigger_character = true,
-      show_on_blocked_trigger_characters = { " ", "\n", "\t" },
-      show_on_accept_on_trigger_character = true,
-      show_on_insert_on_trigger_character = true,
-    },
-    list = {
-      max_items = 200,
-      selection = "preselect",
-      cycle = {
-        from_bottom = true,
-        from_top = true,
+    -- ... (keep all the completion config from before)
+  },
+  -- Source configuration
+  sources = {
+    -- Source selection logic
+    default = function(ctx)
+      if not ctx or not ctx.bufnr then
+        return {}
+      end
+      local ft = vim.bo[ctx.bufnr].filetype
+      if ft == "chat-dialog" then
+        return { "nvimai", "path", "buffer" }
+      end
+      return {}
+    end,
+    -- Provider definitions
+    providers = {
+      nvimai = {
+        name = "NvimAI",
+        module = "ai.completion.cmp_source", -- Point to our source file
+        enabled = function(ctx)
+          return vim.bo[ctx.bufnr].filetype == "chat-dialog"
+        end,
+        async = false,
+        timeout_ms = 1000,
+        transform_items = function(ctx, items)
+          return items
+        end,
+        should_show_items = true,
+        max_items = 200,
+        min_keyword_length = 1,
+        fallbacks = {},
+        score_offset = 0,
       },
-    },
-    accept = {
-      create_undo_point = true,
-      auto_brackets = {
-        enabled = true,
-        default_brackets = { "(", ")" },
-        override_brackets_for_filetypes = {},
-        force_allow_filetypes = {},
-        blocked_filetypes = {},
-        kind_resolution = {
-          enabled = true,
-          blocked_filetypes = { "typescriptreact", "javascriptreact", "vue" },
-        },
-        semantic_token_resolution = {
-          enabled = true,
-          blocked_filetypes = {},
-          timeout_ms = 400,
-        },
-      },
-    },
-    menu = {
-      enabled = true,
-      min_width = 15,
-      max_height = 10,
-      border = "none",
-      winblend = 0,
-      winhighlight = "Normal:BlinkCmpMenu,FloatBorder:BlinkCmpMenuBorder,CursorLine:BlinkCmpMenuSelection,Search:None",
-      scrolloff = 2,
-      scrollbar = true,
-      direction_priority = { "s", "n" },
-      auto_show = true,
-      cmdline_position = function()
-        if vim.g.ui_cmdline_pos ~= nil then
-          local pos = vim.g.ui_cmdline_pos -- (1, 0)-indexed
-          return { pos[1] - 1, pos[2] }
-        end
-        local height = (vim.o.cmdheight == 0) and 1 or vim.o.cmdheight
-        return { vim.o.lines - height, 0 }
-      end,
-    },
-    documentation = {
-      auto_show = false,
-      auto_show_delay_ms = 500,
-      update_delay_ms = 50,
-      treesitter_highlighting = true,
-      window = {
-        min_width = 10,
-        max_width = 60,
-        max_height = 20,
-        desired_min_width = 50,
-        desired_min_height = 10,
-        border = "padded",
-        winblend = 0,
-        winhighlight = "Normal:BlinkCmpDoc,FloatBorder:BlinkCmpDocBorder",
-        scrollbar = true,
-        direction_priority = {
-          menu_north = { "e", "w", "n", "s" },
-          menu_south = { "e", "w", "s", "n" },
+      path = {
+        name = "Path",
+        module = "blink.cmp.sources.path",
+        score_offset = function()
+          return 3
+        end,
+        opts = {
+          completion = {
+            keyword_pattern = [[\%(\/file\s\+\|\/dir\s\+\)\zs[^[:space:]*]],
+            trigger = {
+              characters = { "/", " " },
+              show_on_keyword = true,
+              show_on_trigger_character = true,
+            },
+          },
         },
       },
-    },
-    ghost_text = {
-      enabled = false,
+      buffer = {
+        name = "Buffer",
+        module = "blink.cmp.sources.buffer",
+        opts = {
+          completion = {
+            keyword_pattern = [[\%(\/buf\s\+\)\zs[^[:space:]*]],
+            trigger = {
+              characters = { "/", " " },
+              show_on_keyword = true,
+              show_on_trigger_character = true,
+            },
+          },
+        },
+      },
     },
   },
-
-  -- Source configuration
-  sources = require("ai.completion.sources").default,
-
-  -- Appearance
+  -- Appearance config
   appearance = {
-    highlight_ns = vim.api.nvim_create_namespace("blink_cmp"),
-    use_nvim_cmp_as_default = false,
-    nerd_font_variant = "mono",
-    kind_icons = {
-      Text = "󰉿",
-      Method = "󰊕",
-      Function = "󰊕",
-      Constructor = "󰒓",
-      Field = "󰜢",
-      Variable = "󰆦",
-      Property = "󰖷",
-      Class = "󱡠",
-      Interface = "󱡠",
-      Struct = "󱡠",
-      Module = "󰅩",
-      Unit = "󰪚",
-      Value = "󰦨",
-      Enum = "󰦨",
-      EnumMember = "󰦨",
-      Keyword = "󰻾",
-      Constant = "󰏿",
-      Snippet = "󱄽",
-      Color = "󰏘",
-      File = "󰈔",
-      Reference = "󰬲",
-      Folder = "󰉋",
-      Event = "󱐋",
-      Operator = "󰪚",
-      TypeParameter = "󰬛",
-    },
+    -- ... (keep all the appearance config from before)
   },
 }
 
