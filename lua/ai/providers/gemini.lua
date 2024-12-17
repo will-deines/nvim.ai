@@ -130,7 +130,7 @@ M.parse_curl_args = function(provider, code_opts)
   -- Add generation config from provider config
   if base.generationConfig then
     request_body.generationConfig = {
-      maxOutputTokens = base.generationConfig.maxOutputTokens[Utils.state.current_model],
+      maxOutputTokens = base.generationConfig.maxOutputTokens, -- Direct value, not model-specific
       temperature = base.generationConfig.temperature,
       topP = base.generationConfig.topP,
       topK = base.generationConfig.topK,

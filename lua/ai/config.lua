@@ -111,11 +111,7 @@ M.defaults = {
       "gemini-2.0-flash-exp",
     },
     generationConfig = {
-      maxOutputTokens = {
-        ["gemini-1.5-pro-latest"] = 8192,
-        ["gemini-1.5-flash-latest"] = 8192,
-        ["gemini-2.0-flash-exp"] = 8192,
-      },
+      maxOutputTokens = 8192,
       temperature = 0.1,
       topP = 1.0,
       topK = 40,
