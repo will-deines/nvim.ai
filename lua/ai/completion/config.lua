@@ -7,7 +7,7 @@ local defaults = {
     providers = {
       nvimai = function()
         local source = require("ai.completion.cmp_source")
-        require("ai.utils").debug("Loading completion source: NvimAI", { title = "NvimAI Completion" })
+        require("ai.utils").debug("Loading completion source: nvimai", { title = "NvimAI Completion" })
         return source
       end,
     },

@@ -45,6 +45,7 @@ function SourceBuilder:build()
   local source = {}
   source.cache = {}
   source.resolved_cache = {}
+  source.name = self._config.name
   function source:enabled()
     return vim.bo.filetype == self._config.filetype
   end
