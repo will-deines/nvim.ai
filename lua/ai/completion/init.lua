@@ -1,34 +1,62 @@
 local cmp = require("blink.cmp")
 local config = require("ai.config")
 local ChatDialog = require("ai.chat_dialog")
+local scan = require("plenary.scandir")
 local function is_chat_dialog_buf()
   return vim.bo.filetype == config.FILE_TYPE
 end
+local function filter_files(files, exclude_patterns)
+  return vim.tbl_filter(function(file)
+    for _, pattern in ipairs(exclude_patterns) do
+      if file:match(vim.fn.glob2regpat(pattern)) then
+        return false
+      end
+    end
+    return true
+  end, files)
+end
 local function get_cwd_files(context)
   local cwd = context.opts.get_cwd(context)
-  local files = vim.fn.globpath(cwd, "*", { nodir = true })
-  if config.get("file_completion").respect_gitignore then
-    files = vim.tbl_filter(function(file)
-      return not vim.fn.match(file, config.get("file_completion").exclude_patterns)
-    end, files)
-  end
-  return files
+  local files = {}
+  scan.scan_dir(cwd, {
+    hidden = true,
+    respect_gitignore = true,
+    add_dirs = false,
+    on_insert = function(file)
+      table.insert(files, file)
+    end,
+  })
+  local exclude_patterns = config.get("file_completion").exclude_patterns
+  files = filter_files(files, exclude_patterns)
+  return vim.tbl_map(function(file)
+    return vim.fn.fnamemodify(file, ":.")
+  end, files)
 end
 local function get_cwd_directories(context)
   local cwd = context.opts.get_cwd(context)
-  local directories = vim.fn.globpath(cwd, "*", { onlydir = true })
-  if config.get("file_completion").respect_gitignore then
-    directories = vim.tbl_filter(function(dir)
-      return not vim.fn.match(dir, config.get("file_completion").exclude_patterns)
-    end, directories)
-  end
-  return directories
+  local directories = {}
+  scan.scan_dir(cwd, {
+    hidden = true,
+    respect_gitignore = true,
+    add_dirs = true,
+    on_insert = function(dir)
+      if vim.fn.isdirectory(dir) == 1 then
+        table.insert(directories, dir)
+      end
+    end,
+  })
+  local exclude_patterns = config.get("file_completion").exclude_patterns
+  directories = filter_files(directories, exclude_patterns)
+  return vim.tbl_map(function(dir)
+    return vim.fn.fnamemodify(dir, ":.")
+  end, directories)
 end
 local function get_buffers()
   local buffers = {}
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_get_name(buf) ~= "" then
-      table.insert(buffers, vim.api.nvim_buf_get_name(buf))
+      local buf_name = vim.api.nvim_buf_get_name(buf)
+      table.insert(buffers, vim.fn.fnamemodify(buf_name, ":t"))
     end
   end
   return buffers
