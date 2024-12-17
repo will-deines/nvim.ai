@@ -1,5 +1,5 @@
 local source = require("ai.completion.source_builder")
-  .new("NvimAI")
+  .new("nvimai")
   :with_filetype("chat-dialog")
   :with_trigger_chars({ "/" })
   :with_command("user", "/user:", "Start user message", [[Start a new user message in the chat]])
