@@ -30,4 +30,9 @@ local source = require("ai.completion.source_builder")
     return buffers
   end)
   :build()
+source.enabled = function()
+  local is_enabled = vim.bo.filetype == "chat-dialog"
+  require("ai.utils").debug("cmp_source enabled check: " .. tostring(is_enabled), { title = "NvimAI Completion" })
+  return is_enabled
+end
 return source
