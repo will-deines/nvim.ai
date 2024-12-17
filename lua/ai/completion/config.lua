@@ -6,7 +6,7 @@ local defaults = {
     default = { "nvimai" },
     providers = {
       nvimai = {
-        name = "NvimAI",
+        name = "nvimai",
         module = "ai.completion.cmp_source",
         enabled = function(ctx)
           if not ctx then
