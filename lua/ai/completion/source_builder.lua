@@ -3,6 +3,7 @@
 --- @field private _commands table<string, {label: string, detail: string, doc: string}>
 local SourceBuilder = {}
 SourceBuilder.__index = SourceBuilder
+
 function SourceBuilder.new(name)
   return setmetatable({
     _config = {
@@ -15,10 +16,12 @@ function SourceBuilder.new(name)
     _dynamic_completions = {},
   }, SourceBuilder)
 end
+
 function SourceBuilder:with_module(module)
   self._config.module = module
   return self
 end
+
 function SourceBuilder:with_command(id, label, detail, doc)
   self._commands[id] = {
     label = label,
@@ -27,30 +30,38 @@ function SourceBuilder:with_command(id, label, detail, doc)
   }
   return self
 end
+
 function SourceBuilder:with_dynamic_completion(id, fn)
   self._dynamic_completions[id] = fn
   return self
 end
+
 function SourceBuilder:with_trigger_chars(chars)
   self._config.trigger_chars = chars
   return self
 end
+
 function SourceBuilder:with_filetype(ft)
   self._config.filetype = ft
   return self
 end
+
 function SourceBuilder:build()
   assert(self._config.name, "Source name required")
   assert(self._config.filetype, "Source filetype required")
+
   local source = {}
   source.cache = {}
   source.resolved_cache = {}
+
   function source:enabled()
     return vim.bo.filetype == self._config.filetype
   end
+
   function source:get_trigger_characters()
     return self._config.trigger_chars or {}
   end
+
   local function cleanup_caches(self)
     if vim.tbl_count(self.cache) > self._config.MAX_CACHE_SIZE then
       self.cache = {}
@@ -59,6 +70,7 @@ function SourceBuilder:build()
       self.resolved_cache = {}
     end
   end
+
   local function create_completion_item(command, context)
     return {
       label = command.label,
@@ -82,6 +94,7 @@ function SourceBuilder:build()
       score_offset = 0,
     }
   end
+
   local function create_dynamic_completion_item(item, context, id)
     return {
       label = item,
@@ -101,6 +114,7 @@ function SourceBuilder:build()
       score_offset = 0,
     }
   end
+
   function source:get_completions(context, callback)
     cleanup_caches(self)
     local input = context:get_keyword()
@@ -112,15 +126,16 @@ function SourceBuilder:build()
         is_cached = true,
       })
     end
+
     local ok, items = pcall(function()
       local results = {}
       for id, command in pairs(self._commands) do
-        if input:match("^" .. command.label:sub(1, #input)) then
+        if input:match("^" .. vim.pesc(command.label)) then
           table.insert(results, create_completion_item(command, context))
         end
       end
       for id, fn in pairs(self._dynamic_completions) do
-        if input:match("^" .. id:sub(1, #input)) then
+        if input:match("^" .. vim.pesc(id)) then
           local dynamic_items = fn(context)
           for _, item in ipairs(dynamic_items) do
             table.insert(results, create_dynamic_completion_item(item, context, id))
@@ -129,6 +144,7 @@ function SourceBuilder:build()
       end
       return results
     end)
+
     if not ok then
       require("ai.events").emit("completion_error", {
         source = self._config.name:lower(),
@@ -140,6 +156,7 @@ function SourceBuilder:build()
         items = {},
       })
     end
+
     self.cache[input] = items
     callback({
       is_incomplete_forward = false,
@@ -147,6 +164,7 @@ function SourceBuilder:build()
       items = items,
     })
   end
+
   function source:resolve(item, callback)
     if self.resolved_cache[item.label] then
       return callback(self.resolved_cache[item.label])
@@ -168,6 +186,7 @@ function SourceBuilder:build()
       callback(resolved_item)
     end)
   end
+
   function source:execute(context, item, callback)
     vim.schedule(function()
       local ok, err = pcall(function()
@@ -190,6 +209,8 @@ function SourceBuilder:build()
       callback()
     end)
   end
+
   return source
 end
+
 return SourceBuilder
